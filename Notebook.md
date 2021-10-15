@@ -13,6 +13,7 @@
 * Vettorizzare
 * Curva Logistica
 * A efficace con vento costante
+* Scrivere meglio lo spostamento dell'origine della FT
 
 
 ## Cose da dire a Succi 
