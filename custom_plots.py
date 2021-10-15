@@ -6,7 +6,7 @@ import cv2, os
 import matplotlib.gridspec as gridspec
 
 # PLOT of c, |FT[c]|, c_0, |FT[c_0]|, (c-c_0)/c_0, |FT[c]|/|FT[c_0]|
-def FirstPlot(*,c,c0,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, Nt, nt, savefig_dir, filename):
+def FirstPlot(*,c,vmax,vmin,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, Nt, nt, savefig_dir, filename):
     plt.figure(figsize=(6,4))
     plt.subplots_adjust(left=None, bottom=None, right=1.5, top=1.1, wspace=None, hspace=None)
     gs = gridspec.GridSpec(3, 3, height_ratios=[3, 3,1])
@@ -16,7 +16,7 @@ def FirstPlot(*,c,c0,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, Nt, nt, 
     ax1.set_title('Sinusoidal wind')
     ax1.set_ylabel('$N_y$')
     ax1.set_xlabel('$N_x$')
-    plot1=ax1.imshow(c, vmax=c0.max(), vmin=c0.min())
+    plot1=ax1.imshow(c, vmax=vmax, vmin=vmin)
     plt.colorbar(plot1, ax=ax1, label='c')
 
     # plot |FT[c]|
@@ -30,7 +30,7 @@ def FirstPlot(*,c,c0,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, Nt, nt, 
     
     #plot c_0
     ax3 = plt.subplot(gs[0,1])
-    plot1=ax3.imshow(c_nowind, vmax=c0.max(), vmin=c0.min())
+    plot1=ax3.imshow(c_nowind, vmax=vmax, vmin=vmin)
     ax3.set_title('Constant wind')
     ax3.set_xlabel('$N_x$')
     ax3.set_ylabel('$N_y$')

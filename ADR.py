@@ -8,9 +8,8 @@ import imageio, cv2
 import custom_plots     # Custom library with plotting functions
 from init import *      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
 
-# TO DO:
-# Check conservation laws
-# Vectorise loops
+# To do:
+# Nowind should not be computed if not necessary
 
 timer_start = timer()
 
@@ -19,9 +18,12 @@ print(f'alpha_0 = {alpha_x0}, d_alpha = {d_alpha_x}, omega = 2pi/{N_period}')
 random.seed(rand_seed)
 np.random.seed(rand_seed)
 
-# Create Savefig Directory if not present and delete previouses figures
+# Create Savefig Directory if not present
 if not os.path.exists(savefig_dir):
     os.mkdir(savefig_dir)
+# Create directory where stationary populations are saved
+if not os.path.exists(stat_pops_dir):
+    os.mkdir(stat_pops_dir)
 
 # Advection & Diffusion
 period = dt*N_period    
@@ -45,7 +47,12 @@ def Chem_propagator(M,i,j):
     return M[i][j]*np.exp(a_chem[i][j]*dt) / ( 1 + M[i][j]*(np.exp(a_chem[i][j]*dt) - 1)*(b/a_chem[i][j]) )
 
 # Population
-c0 = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
+if os.path.exists(stationary_c_fname) and os.path.exists(stationary_c_constwind_fname) and stationary_start:    # If stationary files are present
+    c = np.loadtxt(stationary_c_fname)
+    c_nowind = np.loadtxt(stationary_c_constwind_fname)
+else:
+    c = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
+    c_nowind=c.copy()
 
 # Initialise matrices
 fft_section_0 = np.zeros((Nt,Nx))       # Section for k_y = 0 of the |FT| in k_x,t plane
@@ -54,8 +61,7 @@ fft_section_1 = np.zeros((Nt,Nx))       # Sect. for n_k_y = dnk1
 fft_section_0_nowind = np.zeros((Nt,Nx))    # Same as above but for the nowind sys.
 fft_section_1_nowind = np.zeros((Nt,Nx))
 filenames= []
-c=c0.copy()     # Population subjected to sinusoidal wind
-c_nowind=c0.copy()
+
 c_chem = np.zeros((Ny,Nx))  # Used for SWSS
 c_ad = np.zeros((Ny,Nx))
 
@@ -82,7 +88,15 @@ for nt in range(Nt):
     for i in range(Ny):
         for j in range(Nx):
             c_nowind[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
+
+    # Saving stationary arrays if they don't already exist
+    if nt == N_t_stationary: 
+        if not os.path.exists(stationary_c_fname):
+            np.savetxt(stationary_c_fname, c)
+        if not os.path.exists(stationary_c_constwind_fname):
+            np.savetxt(stationary_c_constwind_fname, c_nowind)
     
+    # Update average population
     c_avg.append(c.mean())
     c_nowind_avg.append(c_nowind.mean())            
     
@@ -111,7 +125,7 @@ for nt in range(Nt):
     
     # PLOT of c, |FT[c]|, c_0, |FT[c_0]|, (c-c_0)/c_0, |FT[c]|/|FT[c_0]|
     if make_first_plot and nt % 5 == 0:
-        kwargs = {'c':c,'c0':c0,'fft':fft,'c_nowind':c_nowind, 'fft0':fft0,\
+        kwargs = {'c':c,'vmax':c_m+c_range, 'vmin':c_m-c_range ,'fft':fft,'c_nowind':c_nowind, 'fft0':fft0,\
             'alpha_x0':alpha_x0,'d_alpha_x':d_alpha_x, 'omega':omega,'dt':dt,'Nt':Nt,'nt':nt,\
             'filename' : f'{nt}.png', 'savefig_dir':savefig_dir}
         

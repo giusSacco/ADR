@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+import os
 
 # Parsing all parameters and general infos from ini file 'parameters.ini'
 # For details on the following definitions, check the ini file.
@@ -30,3 +31,8 @@ save_array_dir = cfg.get('saving', 'save_array_dir')
 second_plot_name = cfg.get('saving', 'second_plot_name').format(alpha_x0,d_alpha_x,N_period)
 rand_seed = cfg.getint('simulation params', 'rand_seed')
 make_first_plot = cfg.getboolean('plotting params', 'make_first_plot')
+N_t_stationary = cfg.getint('simulation params', 'N_t_stationary')
+stationary_start = cfg.getboolean('simulation params', 'stationary_start')
+stat_pops_dir = cfg.get('saving','stat_pops_dir')
+stationary_c_fname = os.path.join(stat_pops_dir,cfg.get('saving','stationary_c_fname').format(alpha_x0,d_alpha_x,N_period))
+stationary_c_constwind_fname = os.path.join(stat_pops_dir,cfg.get('saving','stationary_c_constwind_fname').format(alpha_x0))
