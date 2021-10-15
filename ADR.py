@@ -65,7 +65,7 @@ c_nowind_avg = []
 
 # Time evolution: SWSS
 for nt in range(Nt):
-    alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Wind
+    alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
     for i in range(Ny):     # Vectorize maybe?
         for j in range(Nx):
             c_chem[i][j] = Chem_propagator(c,i,j)
