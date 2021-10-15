@@ -10,7 +10,7 @@
 
 ## ToDo Lorenzo
 
-* Vettorizzo
+* Vettorizzare
 * Curva Logistica
 * A efficace con vento costante
 
