@@ -38,11 +38,18 @@ def lapl_2D(M,i,j):
 def AD_propagator(M,i,j):
     return M[i][j] + alpha_x*grad_x(M,i,j) + delta*lapl_2D(M,i,j)
 
+def AD_propagator_vector(M):
+    return M + alpha_x*grad_matrix + delta*lap_matrix
+
 # Chemistry
 a_chem = np.random.uniform(low = a_chem_m-a_chem_range, high = a_chem_m+a_chem_range, size = (Ny,Nx))
 
 def Chem_propagator(M,i,j):
     return M[i][j]*np.exp(a_chem[i][j]*dt) / ( 1 + M[i][j]*(np.exp(a_chem[i][j]*dt) - 1)*(b/a_chem[i][j]) )
+
+def Chem_propagator_vector(M):
+    eturn M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
+
 
 # Population
 c0 = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
@@ -62,26 +69,57 @@ c_ad = np.zeros((Ny,Nx))
 c_avg = []      # Average population for each t
 c_nowind_avg = []
 
+#To Vectorize
+grad_matrix = np.zeros((Ny,Nx))
+lap_matrix = np.zeros((Ny,Nx))
 
 # Time evolution: SWSS
 for nt in range(Nt):
     alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
+
     for i in range(Ny):     # Vectorize maybe?
         for j in range(Nx):
-            c_chem[i][j] = Chem_propagator(c,i,j)
-            c_ad[i][j] = AD_propagator(c,i,j)
-    for i in range(Ny):
+            grad_matrix[i][j] =  grad_x(c,i,j)
+
+    for i in range(Ny):     # Vectorize maybe?
         for j in range(Nx):
-            c[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
+            lap_matrix[i][j] =  lapl_2D(c,i,j)
+
+    c_ad = AD_propagator_vector(c)
+    c_chem = Chem_propagator_vector(c)
+
+    c = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
+
+    #for i in range(Ny):     # Vectorize maybe?
+    #    for j in range(Nx):
+    #        c_chem[i][j] = Chem_propagator(c,i,j)
+    #        c_ad[i][j] = AD_propagator(c,i,j)
+    #for i in range(Ny):
+    #    for j in range(Nx):
+    #        c[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
 
     alpha_x = alpha_x0      # Same as above but for constant wind
-    for i in range(Ny):
+    
+    #for i in range(Ny):
+    #    for j in range(Nx):
+    #        c_chem[i][j] = Chem_propagator(c_nowind,i,j)
+    #        c_ad[i][j] = AD_propagator(c_nowind,i,j)
+    #for i in range(Ny):
+    #    for j in range(Nx):
+    #        c_nowind[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
+
+    for i in range(Ny):     # Vectorize maybe?
         for j in range(Nx):
-            c_chem[i][j] = Chem_propagator(c_nowind,i,j)
-            c_ad[i][j] = AD_propagator(c_nowind,i,j)
-    for i in range(Ny):
+            grad_matrix[i][j] =  grad_x(c_nowind,i,j)
+
+    for i in range(Ny):     # Vectorize maybe?
         for j in range(Nx):
-            c_nowind[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
+            lap_matrix[i][j] =  lapl_2D(c_nowind,i,j)
+
+    c_ad = AD_propagator_vector(c_nowind)
+    c_chem = Chem_propagator_vector(c_nowind)
+
+    c_nowind = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
     
     c_avg.append(c.mean())
     c_nowind_avg.append(c_nowind.mean())            
