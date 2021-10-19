@@ -3,6 +3,7 @@
 # Except the following
 !Arrays_seed2/
 !StationaryPops
+!StatArrays
 
 # The rest is the default template for python
 
