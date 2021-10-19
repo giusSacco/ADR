@@ -48,7 +48,7 @@ def Chem_propagator(M,i,j):
     return M[i][j]*np.exp(a_chem[i][j]*dt) / ( 1 + M[i][j]*(np.exp(a_chem[i][j]*dt) - 1)*(b/a_chem[i][j]) )
 
 def Chem_propagator_vector(M):
-    eturn M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
+    return M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
 
 
 # Population
