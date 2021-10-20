@@ -40,7 +40,7 @@ def lapl_2D_vector(M):
     return -3*M + 0.5*sides + 0.25*corners
 
 def AD_propagator_vector(M):
-    return M + alpha_x*grad_matrix + delta*lap_matrix
+    return M + alpha_x*grad_x_vector(M) + delta*lapl_2D_vector(M)
 
 # Chemistry
 a_chem = np.random.uniform(low = a_chem_m-a_chem_range, high = a_chem_m+a_chem_range, size = (Ny,Nx))
@@ -61,8 +61,6 @@ fft_section_1_nowind = np.zeros((Nt,Nx))
 filenames= []
 c=c0.copy()     # Population subjected to sinusoidal wind
 c_nowind=c0.copy()
-c_chem = np.zeros((Ny,Nx))  # Used for SWSS
-c_ad = np.zeros((Ny,Nx))
 
 c_avg = []      # Average population for each t
 c_nowind_avg = []
@@ -71,18 +69,12 @@ c_nowind_avg = []
 for nt in range(Nt):
     alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
 
-    grad_matrix = grad_x_vector(c)
-    lap_matrix = lapl_2D_vector(c)
-
     c_ad = AD_propagator_vector(c)
     c_chem = Chem_propagator_vector(c)
     c = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
 
     # Same as above but for CONSTANT WIND
     alpha_x = alpha_x0      
-    
-    grad_matrix = grad_x_vector(c_nowind)
-    lap_matrix = lapl_2D_vector(c_nowind)
 
     c_ad = AD_propagator_vector(c_nowind)
     c_chem = Chem_propagator_vector(c_nowind)
@@ -124,7 +116,7 @@ for nt in range(Nt):
         custom_plots.FirstPlot(**kwargs)
 
         filenames.append(kwargs['filename'])
-    if nt % 5 == 0:    
+    if nt % 100 == 0:    
         print(nt)
 
 
