@@ -27,14 +27,17 @@ if not os.path.exists(savefig_dir):
 period = dt*N_period    
 omega = 2*np.pi/period
 
-def grad_x(M,i,j):
-    return 0.5*( M[i][(j+1)%Nx] - M[i][(j-1)%Nx] ) 
 
-def lapl_2D(M,i,j):
-    sides = M[(i+1)%Ny][j] + M[(i-1)%Ny][j] + M[i][(j+1)%Nx] + M[i][(j-1)%Nx]
-    corners = M[(i+1)%Ny][(j+1)%Nx] + M[(i-1)%Ny][(j+1)%Nx] + M[(i+1)%Ny][(j-1)%Nx] + M[(i-1)%Ny][(j-1)%Nx]
-    return -3*M[i][j] + 0.5*sides + 0.25*corners
+def grad_x_vector(M):
+    return 0.5*(np.roll(M,1, axis=1) - np.roll(M,-1, axis=1))
 
+def find_side(M, dx, dy):
+    return np.roll(np.roll(M, dx, axis = 1), dy, axis = 0)
+
+def lapl_2D_vector(M):
+    sides = np.roll(M,1, axis=0) + np.roll(M,-1, axis=0) + np.roll(M,1, axis=1) + np.roll(M,-1, axis=1)
+    corners = find_side(M, 1, 1) + find_side(M, -1, 1) + find_side(M, 1, -1) + find_side(M, -1, -1)
+    return -3*M + 0.5*sides + 0.25*corners
 
 def AD_propagator_vector(M):
     return M + alpha_x*grad_matrix + delta*lap_matrix
@@ -64,18 +67,12 @@ c_ad = np.zeros((Ny,Nx))
 c_avg = []      # Average population for each t
 c_nowind_avg = []
 
-#To Vectorize
-grad_matrix = np.zeros((Ny,Nx))
-lap_matrix = np.zeros((Ny,Nx))
-
 # Time evolution: SWSS
 for nt in range(Nt):
     alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
 
-    for i in range(Ny):
-        for j in range(Nx):
-            grad_matrix[i][j] =  grad_x(c,i,j)
-            lap_matrix[i][j] =  lapl_2D(c,i,j)
+    grad_matrix = grad_x_vector(c)
+    lap_matrix = lapl_2D_vector(c)
 
     c_ad = AD_propagator_vector(c)
     c_chem = Chem_propagator_vector(c)
@@ -84,10 +81,8 @@ for nt in range(Nt):
     # Same as above but for CONSTANT WIND
     alpha_x = alpha_x0      
     
-    for i in range(Ny):
-        for j in range(Nx):
-            grad_matrix[i][j] =  grad_x(c_nowind,i,j)
-            lap_matrix[i][j] =  lapl_2D(c_nowind,i,j)
+    grad_matrix = grad_x_vector(c_nowind)
+    lap_matrix = lapl_2D_vector(c_nowind)
 
     c_ad = AD_propagator_vector(c_nowind)
     c_chem = Chem_propagator_vector(c_nowind)
