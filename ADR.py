@@ -31,12 +31,10 @@ omega = 2*np.pi/period
 def grad_x_vector(M):
     return 0.5*(np.roll(M,1, axis=1) - np.roll(M,-1, axis=1))
 
-def find_side(M, dx, dy):
-    return np.roll(np.roll(M, dx, axis = 1), dy, axis = 0)
-
 def lapl_2D_vector(M):
     sides = np.roll(M,1, axis=0) + np.roll(M,-1, axis=0) + np.roll(M,1, axis=1) + np.roll(M,-1, axis=1)
-    corners = find_side(M, 1, 1) + find_side(M, -1, 1) + find_side(M, 1, -1) + find_side(M, -1, -1)
+    corners = np.roll(M,[1,1],axis=(0,1)) + np.roll(M,[-1,1],axis=(0,1)) + \
+        np.roll(M,[1,-1],axis=(0,1)) + np.roll(M,[-1,-1],axis=(0,1))
     return -3*M + 0.5*sides + 0.25*corners
 
 def AD_propagator_vector(M):
