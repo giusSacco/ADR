@@ -8,7 +8,7 @@ cfg.read('parameters.ini')
 Nx = cfg.getint('simulation params', 'Nx')
 Ny = cfg.getint('simulation params', 'Ny')
 Nt = cfg.getint('simulation params', 'Nt')
-N_period = cfg.getint('simulation params', 'N_period')
+N_period = [int (n) for n in cfg.get('simulation params', 'N_period').split(',')]
 dt = cfg.getfloat('simulation params', 'dt')
 alpha_x0 = cfg.getfloat('simulation params', 'alpha_x0')
 d_alpha_x = cfg.getfloat('simulation params', 'd_alpha_x')

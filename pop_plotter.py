@@ -8,7 +8,7 @@ cfg = ConfigParser()
 cfg.read('parameters.ini')
 
 Nt = 1000
-#Nt = cfg.getint('simulation params', 'Nt')
+Nt = cfg.getint('simulation params', 'Nt')
 alpha_x0 = 0.15
 d_alpha_x = 0.15
 a_chem_m = cfg.getfloat('simulation params', 'a_chem_m')
@@ -34,7 +34,7 @@ pattern = re.compile( r'''omega_(\d+).txt''')
 FILES = tuple([ file_ for file_ in os.listdir(save_array_dir) if pattern.fullmatch(file_) ])
 print(FILES)
 c_constwind_avg = np.loadtxt(os.path.join(save_array_dir,'constwind_0.15.txt'))
-#c_constwind_avg = 0
+c_constwind_avg = 0
 for file_ in FILES:
     color = color=next(ax1._get_lines.prop_cycler)['color']
     c_avg = np.loadtxt(os.path.join(save_array_dir,file_))

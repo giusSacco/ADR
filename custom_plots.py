@@ -124,7 +124,7 @@ def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt,
     Z_max = max(Z_0_blur.max(), Z_1_blur.max()) # Servono per i limiti della colorbar
     Z_min = min(Z_0_blur.min(), Z_1_blur.min())
     
-    plt.figure(figsize=(4* Nt//N_period,4*1.2))
+    plt.figure(figsize=(4,4*1.2))
     gs = gridspec.GridSpec(3, 3, height_ratios=[2,3.2, 1])
 
     ax1 = plt.subplot(gs[0,0])
