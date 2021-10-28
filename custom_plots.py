@@ -6,7 +6,7 @@ import cv2, os
 import matplotlib.gridspec as gridspec
 
 # PLOT of c, |FT[c]|, c_0, |FT[c_0]|, (c-c_0)/c_0, |FT[c]|/|FT[c_0]|
-def FirstPlot(*,c,vmax,vmin,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, Nt, nt, savefig_dir, filename):
+def FirstPlot(*,c,vmax,vmin,fft,c_constwind, fft0, alpha_x0,d_alpha_x, omega, dt, Nt, nt, savefig_dir, filename):
     plt.figure(figsize=(6,4))
     plt.subplots_adjust(left=None, bottom=None, right=1.5, top=1.1, wspace=None, hspace=None)
     gs = gridspec.GridSpec(3, 3, height_ratios=[3, 3,1])
@@ -30,7 +30,7 @@ def FirstPlot(*,c,vmax,vmin,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, N
     
     #plot c_0
     ax3 = plt.subplot(gs[0,1])
-    plot1=ax3.imshow(c_nowind, vmax=vmax, vmin=vmin)
+    plot1=ax3.imshow(c_constwind, vmax=vmax, vmin=vmin)
     ax3.set_title('Constant wind')
     ax3.set_xlabel('$N_x$')
     ax3.set_ylabel('$N_y$')
@@ -71,7 +71,7 @@ def FirstPlot(*,c,vmax,vmin,fft,c_nowind, fft0, alpha_x0,d_alpha_x, omega, dt, N
     ax1.set_title('Sinusoidal/constant')
     ax1.set_xlabel('$N_x$')
     ax1.set_ylabel('$N_y$')
-    plot1=ax1.imshow( (c-c_nowind)/c_nowind ,vmax=.4, vmin=-.4,cmap = 'RdBu')
+    plot1=ax1.imshow( (c-c_constwind)/c_constwind ,vmax=.4, vmin=-.4,cmap = 'RdBu')
     plt.colorbar(plot1, ax=ax1,label=r'$\frac{c-c_0}{c_0}$')
 
     # plot |FT[c]|/|FT[c_0]|
@@ -119,7 +119,7 @@ def ThreeD_Plot(Nt,Nx,Z_0):
     plt.show()
 
 
-def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt, Z_0_blur_nowind, Z_1_blur_nowind, second_plot_name, savefig_dir):
+def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt, Z_0_blur_constwind, Z_1_blur_constwind, second_plot_name, savefig_dir):
     
     Z_max = max(Z_0_blur.max(), Z_1_blur.max()) # Servono per i limiti della colorbar
     Z_min = min(Z_0_blur.min(), Z_1_blur.min())
@@ -158,10 +158,10 @@ def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt,
     ax2.set_xlim(0,Nt-1)
     ax2.set_ylim(alpha_x0-d_alpha_x,alpha_x0+d_alpha_x)
 
-    # NOWIND PLOT
+    # constwind PLOT
 
     ax1 = plt.subplot(gs[0,1])
-    im = ax1.imshow(Z_0_blur_nowind, aspect='auto', vmin = Z_min, vmax=Z_max,extent=[ 0, Nt, -np.pi, np.pi])
+    im = ax1.imshow(Z_0_blur_constwind, aspect='auto', vmin = Z_min, vmax=Z_max,extent=[ 0, Nt, -np.pi, np.pi])
     periods = range(0,Nt,N_period)[1:]
     ax1.vlines(periods,ymin = -np.pi, ymax=np.pi, colors='k', linestyles='dashed')
     ax1.set_title('Constant wind, $K_y$ = 0')
@@ -170,7 +170,7 @@ def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt,
     ax1.tick_params(axis='x', which='both', bottom='off', top='off',labelbottom='off')
 
     ax3 = plt.subplot(gs[1,1])
-    im = ax3.imshow(Z_1_blur_nowind, aspect='auto',vmin = Z_min, vmax=Z_max,extent=[ 0, Nt, -np.pi, np.pi])
+    im = ax3.imshow(Z_1_blur_constwind, aspect='auto',vmin = Z_min, vmax=Z_max,extent=[ 0, Nt, -np.pi, np.pi])
     periods = range(0,Nt,N_period)[1:]
     ax3.vlines(periods,ymin = -np.pi, ymax=np.pi, colors='k', linestyles='dashed')
     ax3.set_title(f'$K_y = \pi/4$')
@@ -191,7 +191,7 @@ def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt,
     # PLOT DIFFERENCE
 
     ax1 = plt.subplot(gs[0,2])
-    im = ax1.imshow(Z_0_blur - Z_0_blur_nowind, aspect='auto', vmin = -.5, vmax=.5,cmap = 'RdBu',extent=[ 0, Nt, -np.pi, np.pi])
+    im = ax1.imshow(Z_0_blur - Z_0_blur_constwind, aspect='auto', vmin = -.5, vmax=.5,cmap = 'RdBu',extent=[ 0, Nt, -np.pi, np.pi])
     periods = range(0,Nt,N_period)[1:]
     ax1.vlines(periods,ymin = -np.pi, ymax=np.pi, colors='k', linestyles='dashed')
     ax1.set_title('Sinusoidal/constant, $K_y$ = 0')
@@ -201,7 +201,7 @@ def SecondPlot(Nt, N_period, Z_0_blur, Z_1_blur, alpha_x0, d_alpha_x, omega, dt,
     ax1.tick_params(axis='x', which='both', bottom='off', top='off',labelbottom='off')
 
     ax3 = plt.subplot(gs[1,2])
-    im = ax3.imshow(Z_1_blur - Z_1_blur_nowind, aspect='auto',cmap = 'RdBu',vmin=-0.5,vmax=0.5,extent=[ 0, Nt, -np.pi, np.pi])
+    im = ax3.imshow(Z_1_blur - Z_1_blur_constwind, aspect='auto',cmap = 'RdBu',vmin=-0.5,vmax=0.5,extent=[ 0, Nt, -np.pi, np.pi])
     periods = range(0,Nt,N_period)[1:]
     ax3.vlines(periods,ymin = -np.pi, ymax=np.pi, colors='k', linestyles='dashed')
     ax3.set_title(f'$K_y = \pi/4$')
