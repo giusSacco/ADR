@@ -15,7 +15,10 @@
 * Scrivere meglio lo spostamento dell'origine della FT
 
 ## General ToDo
-* Grafico dei parametri del fit in funzione di omega
+* Grafico dei parametri del fit in funzione di omega:
+    * Valor medio di *a_eff* __a stazionarietà__
+    * Ampiezza d'oscillazione di *a_eff* __a stazionarietà__
+    * Phase delay fra *a_eff* e v(omega)
 
 
 ## Cose da dire a Succi 
