@@ -6,6 +6,7 @@
     * Vento Costante
     * Vento che Oscilla 
 * Aggiungere if per vento costante e FT
+* Merge
 
 ## ToDo Lorenzo
 
