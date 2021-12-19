@@ -7,6 +7,7 @@
     * Vento Costante
     * Vento che Oscilla 
 
+
 ## ToDo Lorenzo
 
 * (opt) Curva Logistica
@@ -21,7 +22,7 @@
     * Valor medio di *a_eff* __a stazionarietà__
     * Ampiezza d'oscillazione di *a_eff* __a stazionarietà__
     * Phase delay fra *a_eff* e v(omega)
-
+* param plotter
 
 ## Cose da dire a Succi 
 
