@@ -14,6 +14,7 @@
 * Scrivere meglio lo spostamento dell'origine della FT
 * Implementare multiple seed
 * Fit sinusoide a stazionarietà
+* Dai un'occhiata ai merge passati
 
 ## General ToDo
 * Grafico dei parametri del fit in funzione di omega:
