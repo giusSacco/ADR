@@ -7,7 +7,6 @@
 # The rest is the default template for python
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
 *$py.class
 
 # C extensions
