@@ -1,5 +1,5 @@
 # Ignore all directories
-/*
+.*
 # Except Arrays_seed2
 !Arrays_seed2/
 !NewArrays2022/
@@ -53,7 +53,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
+#*.py,cover
 .hypothesis/
 .pytest_cache/
 
