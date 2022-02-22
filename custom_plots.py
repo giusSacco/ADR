@@ -2,7 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
-import cv2, os
+import  os
+#import cv2
 import matplotlib.gridspec as gridspec
 
 # PLOT of c, |FT[c]|, c_0, |FT[c_0]|, (c-c_0)/c_0, |FT[c]|/|FT[c_0]|

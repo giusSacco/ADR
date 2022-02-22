@@ -1,6 +1,6 @@
 # Ignore all directories
 /*
-# Except Arrays_seed2
+# Except these directories
 !Arrays_seed2/
 !NewArrays2022/
 
