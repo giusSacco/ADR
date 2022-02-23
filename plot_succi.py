@@ -86,25 +86,26 @@ def main():
     for x, y in Res:
         plt.plot(x, y)
 
-    fig2, (ax1, ax2, ax3) = plt.subplots(3, 1)
+    # fig2, (ax1, ax2, ax3) = plt.subplots(3, 1)
 
-    #fig2, (ax2) = plt.subplots(1, 1)
+    fig2, (ax2, ax3) = plt.subplots(2, 1)
 
     for o, m, a, p in Analysis:
 
-        ax1.plot(o, m, 'o')
-        ax1.set_xscale('log')
-        ax1.set_ylabel('Mean Value')
+        # ax1.plot(o, m, 'o')
+        # ax1.set_xscale('log')
+        # ax1.set_ylabel('Mean Value')
 
         ax2.plot(o/(6.28), a*100, 'ok')
         ax2.set_xscale('log')
         ax2.set_ylabel(r'Modulation Amplitude [\%]')
 
-        ax3.plot(o, p, 'o')
+        ax3.plot(o, p, 'ok')
         ax3.set_xscale('log')
-        ax3.set_ylabel('Phase')
+        ax3.set_ylabel('Relative Phase[°]')
+        ax3.set_ylim([-100, 100])
 
-        #ax2.set_xlabel(r'$\frac{\omega * a}{2 \pi}$')
+        ax3.set_xlabel(r'$\frac{\omega  a}{2 \pi}$')
 
     #the fft was a failed experiment
     m=0
