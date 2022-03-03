@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import sys, os
 import re
 from scipy.fft import fft, fftfreq
+from scipy.optimize import curve_fit
 from scipy.interpolate import InterpolatedUnivariateSpline as spline
 plt.rcParams.update({
   "text.usetex": True,
@@ -137,7 +138,7 @@ def main():
         else:
             Img.append(np.zeros(len(xf)))
     
-    omegas, Img, maxes, peaks, spectra = zip(*sorted(zip(omegas, Img, maxes, peaks, spectra), reverse=False))
+    omegas, Img, maxes, peaks, spectra, Res = zip(*sorted(zip(omegas, Img, maxes, peaks, spectra, Res), reverse=False))
 
     Img=np.array(Img)
     # 
@@ -157,8 +158,23 @@ def main():
     axn.set_xlabel('Omega')
     axn.set_ylabel('FFT peak')
 
+
+    index_to_plot_alone = -5 # 0 ,  len(omegas)//2 ,  -15
+    fig5, ax_ = plt.subplots(1, 1)
+    y = Res[index_to_plot_alone][1]
+    x = np.linspace(0, 1, len(y))
+    Params, _ = curve_fit(sine_fit, x, y, p0=[2*np.pi, 0.5*(max(y)-min(y)), 0, np.mean(y)])
+    s = spline(x, y)
+    ax_.plot(np.linspace(0, 1, 300), s(np.linspace(0, 1, 300)), '-k', label = 'Data')
+    ax_.plot(np.linspace(0, 1, 300), sine_fit(np.linspace(0, 1, 300), *Params), '--r', label = 'Sine fit')
+    ax_.legend()
+    ax_.set_xlabel('Time [Period]')
+    ax_.set_ylabel('Population')
+
     plt.show()
     
+def sine_fit(x, omega, A, delta, C):
+    return A*np.sin(omega*x+delta) + C
 
 if __name__ == '__main__':
     main()
