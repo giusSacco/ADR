@@ -8,6 +8,8 @@ import re
 from scipy.fft import fft, fftfreq
 from scipy.optimize import curve_fit
 from scipy.interpolate import InterpolatedUnivariateSpline as spline
+from cmath import rect
+
 plt.rcParams.update({
   "text.usetex": True,
   "font.family": "Helvetica"
@@ -65,7 +67,24 @@ def do_fft(y, dt):
 
     return freq , signal
 
+def debye_real(x, tau, B, alpha):
+    return - B/(1+(x*tau)**alpha)
 
+def debye_imag(x, tau, B, alpha):
+    return x*tau*B/(1+(x*tau)**alpha)
+
+def hkr(x, tau, B, alpha, beta):
+    return np.real(B/(1+(1j*x*tau)**alpha)**beta)
+
+def hki(x, tau, B, alpha, beta):
+    return np.imag(B/(1+(1j*x*tau)**alpha)**beta)
+
+def hk_spectra(t, tau, B, alpha, beta):
+    return 1/np.pi*((t/tau)**(alpha*beta)*np.sin(beta*theta(t, tau, B, alpha, beta))/((t/tau)**(alpha*2) + 2*np.cos(np.pi*alpha)*(t/tau)**(alpha)+1)**(0.5*beta))
+
+def theta(t, tau, B, alpha, beta):
+    return np.arctan2(np.sin(np.pi*alpha), np.cos(np.pi*alpha)*(t/tau)**(alpha))
+    
 def main():
     res_dir = 'NewArrays2022/'
     Res=[]
@@ -97,16 +116,65 @@ def main():
         # ax1.set_xscale('log')
         # ax1.set_ylabel('Mean Value')
 
-        ax2.plot(o/(6.28), a*100, 'ok')
+        ax2.plot(o, a*100, 'ok')
         ax2.set_xscale('log')
         ax2.set_ylabel(r'Modulation Amplitude [\%]')
 
-        ax3.plot(o, p, 'ok')
+        ax3.plot(o, 180-(90-p), 'ok')
         ax3.set_xscale('log')
         ax3.set_ylabel('Relative Phase[°]')
-        ax3.set_ylim([-100, 100])
+        ax3.set_ylim([0, 180])
 
         ax3.set_xlabel(r'$\frac{\omega  a}{2 \pi}$')
+    
+    fig2_, (ax2_, ax3_) = plt.subplots(2, 1)
+
+    real, imag, omg = [], [], []
+
+    for o, m, a, p in Analysis:
+        omg.append(o)
+        p = 180-(90-p)
+
+        com = rect(a, p*np.pi/180)
+        # ax1.plot(o, m, 'o')
+        # ax1.set_xscale('log')
+        # ax1.set_ylabel('Mean Value')
+
+        real.append(np.real(com))
+        imag.append(np.imag(com))
+
+        ax2_.plot(o, np.real(com), 'ok')
+        ax2_.set_xscale('log')
+        ax2_.set_ylabel(r'Real Part')
+
+        ax3_.plot(o, np.imag(com), 'ok')
+        ax3_.set_xscale('log')
+        ax3_.set_ylabel('Imaginary Part')
+
+        ax3_.set_xlabel(r'$\frac{\omega  a}{2 \pi}$')
+    
+    omg = np.array(omg)
+    
+    Param, _ = curve_fit(hki, omg, imag)
+    Param2, _ = curve_fit(hkr, omg, real)
+
+    print(Param)
+    print(Param2)
+
+    omg.sort()
+    ax3_.plot(omg, hki(omg, *Param), '--r')
+    ax2_.plot(omg, hkr(omg, *Param2), '--r')
+
+    Pt = 0.5*(Param+Param2)
+
+    fig2__, ax__ = plt.subplots(1, 1)
+    xxx=np.logspace(-2, 2, 500)
+    ax__.plot(xxx, np.abs(hk_spectra(xxx, *Pt)), 'k')
+    ax__.set_xscale('log')
+    ax__.set_ylabel(r'$g(\tau_{rel})$')
+    ax__.set_xlabel(r'$\tau_{rel}/a$')
+
+
 
     #the fft was a failed experiment
     m=0
