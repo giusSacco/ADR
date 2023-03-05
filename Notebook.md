@@ -13,8 +13,9 @@
 
 * Correlation vento e popolazione ($\int c(t)*\alpha(t+tau) dt$)
 * Parameter spanning su media e ampiezza vento -> colormap (capire cosa)
-* Risonanza stocastica (?)8
+* Risonanza stocastica (?) 9
 * Sarebbe carino poter trovare un Ansatz analitico per c(t) e vedere cosa esce fuori mettendolo nell'equazione generale ADR (magari FT?)
+  * L'idea è che la soluzione sia ciclostazionaria (i.e. $c_{steady}(x,t) = \sum_N c_N(x) e^{i \omega t}$ 
 
 ## Cose da dire a Succi 
 
