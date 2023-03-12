@@ -1,11 +1,14 @@
 # Ignore all directories
-.*
-# Except Arrays_seed2
+
+/*
+# Except the following
 !Arrays_seed2/
-!NewArrays2022/
-ADR_venv
+!StationaryPops
+!StatArrays
 
 # The rest is the default template for python
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *$py.class

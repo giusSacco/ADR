@@ -1,5 +1,6 @@
 # Survival of the luckiest
 #%%
+from math import ceil
 import random, os
 import numpy as np
 from timeit import default_timer as timer
@@ -8,9 +9,6 @@ import imageio, cv2
 import custom_plots     # Custom library with plotting functions
 from init import *      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
 
-# TO DO:
-# Check conservation laws
-# Vectorise loops
 
 timer_start = timer()
 
@@ -19,9 +17,12 @@ print(f'alpha_0 = {alpha_x0}, d_alpha = {d_alpha_x}, omega = 2pi/{N_period}')
 random.seed(rand_seed)
 np.random.seed(rand_seed)
 
-# Create Savefig Directory if not present and delete previouses figures
+# Create Savefig Directory if not present
 if not os.path.exists(savefig_dir):
     os.mkdir(savefig_dir)
+# Create directory where stationary populations are saved
+if not os.path.exists(stat_pops_dir):
+    os.mkdir(stat_pops_dir)
 
 # Advection & Diffusion
 period = dt*N_period    
@@ -47,25 +48,39 @@ def Chem_propagator_vector(M):
     return M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
 
 
+# Stationary condition is considered reached for the first nt > N_t_stationary_min and multiple of N_period (so that the wind phase is 0)
+N_t_stationary = N_period * ceil(N_t_stationary_min/N_period)
+
 # Population
-c0 = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
+# Stationary start is chosen by the user, but if files are not present, stationary_initial_cond is still False
+# It would be nice to decouple sinusoidal and constant wind files. Here we need both
+stationary_initial_cond = os.path.exists(stationary_c_fname) and os.path.exists(stationary_c_constwind_fname) and stationary_start
+if stationary_initial_cond:    # If stationary files are present and user chose stationary intial cond.
+    c = np.load(stationary_c_fname)
+    c_constwind = np.load(stationary_c_constwind_fname)
+else:
+    c = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
+    c_constwind=c.copy()
+    Nt += N_t_stationary # If files are not present, we create it first and than proceed normally when stationariety is reached
 
 # Initialise matrices
 fft_section_0 = np.zeros((Nt,Nx))       # Section for k_y = 0 of the |FT| in k_x,t plane
 fft_section_1 = np.zeros((Nt,Nx))       # Sect. for n_k_y = dnk1
 
-fft_section_0_nowind = np.zeros((Nt,Nx))    # Same as above but for the nowind sys.
-fft_section_1_nowind = np.zeros((Nt,Nx))
+fft_section_0_constwind = np.zeros((Nt,Nx))    # Same as above but for the constwind sys.
+fft_section_1_constwind = np.zeros((Nt,Nx))
 filenames= []
+
 c=c0.copy()     # Population subjected to sinusoidal wind
 c_nowind=c0.copy()
 
 c_avg = []      # Average population for each t
-c_nowind_avg = []
+c_constwind_avg = []
 
 # Time evolution: SWSS
 for nt in range(Nt):
     alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
+
 
     c_ad = AD_propagator_vector(c)
     c_chem = Chem_propagator_vector(c)
@@ -78,9 +93,15 @@ for nt in range(Nt):
     c_chem = Chem_propagator_vector(c_nowind)
     c_nowind = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
     
+    # Saving stationary arrays if we didn't start from stationariety
+    if nt == N_t_stationary and not stationary_initial_cond: 
+        np.save(stationary_c_fname, c) # Note that one of them can be already existing ad is overwritten 
+        np.save(stationary_c_constwind_fname, c_constwind)
     
-    c_avg.append(c.mean())
-    c_nowind_avg.append(c_nowind.mean())            
+    # Update average population
+    if nt >= N_t_stationary or not stationary_start: # If user didn't request stationary start we save also the transient population
+        c_avg.append(c.mean())
+        c_constwind_avg.append(c_constwind.mean())            
     
     
     # Fourier transform of population
@@ -91,7 +112,7 @@ for nt in range(Nt):
     fft2=np.concatenate((x4, x2), axis=1)
     fft=np.concatenate((fft2, fft1), axis=0)
 
-    fft0=np.fft.fft2(c_nowind)
+    fft0=np.fft.fft2(c_constwind)
     x1,x2, x3, x4= fft0[:Ny//2,:Nx//2], fft0[Ny//2:,:Nx//2], fft0[:Ny//2,Nx//2:], fft0[Ny//2:,Nx//2:]
     fft1=np.concatenate((x3, x1), axis=1)
     fft2=np.concatenate((x4, x2), axis=1)
@@ -101,13 +122,13 @@ for nt in range(Nt):
     fft_section_0[nt][:] = np.mean(np.abs(fft[Ny//2 - 1:Ny//2 +1][:]), axis = 0)
     fft_section_1[nt][:] = np.mean(np.abs(fft[Ny//2 + dnk1 - 1:Ny//2 + dnk1 +1][:]), axis = 0)
 
-    fft_section_0_nowind[nt][:] = np.mean(np.abs(fft0[Ny//2 - 1:Ny//2 +1][:]), axis = 0)
-    fft_section_1_nowind[nt][:] = np.mean(np.abs(fft0[Ny//2 + dnk1 - 1:Ny//2 + dnk1 +1][:]), axis = 0)
+    fft_section_0_constwind[nt][:] = np.mean(np.abs(fft0[Ny//2 - 1:Ny//2 +1][:]), axis = 0)
+    fft_section_1_constwind[nt][:] = np.mean(np.abs(fft0[Ny//2 + dnk1 - 1:Ny//2 + dnk1 +1][:]), axis = 0)
     #fft_section_0[nt][:] = scipy.signal.savgol_filter(tmp, 5, 3)
     
     # PLOT of c, |FT[c]|, c_0, |FT[c_0]|, (c-c_0)/c_0, |FT[c]|/|FT[c_0]|
     if make_first_plot and nt % 5 == 0:
-        kwargs = {'c':c,'c0':c0,'fft':fft,'c_nowind':c_nowind, 'fft0':fft0,\
+        kwargs = {'c':c,'vmax':c_m+c_range, 'vmin':c_m-c_range ,'fft':fft,'c_constwind':c_constwind, 'fft0':fft0,\
             'alpha_x0':alpha_x0,'d_alpha_x':d_alpha_x, 'omega':omega,'dt':dt,'Nt':Nt,'nt':nt,\
             'filename' : f'{nt}.png', 'savefig_dir':savefig_dir}
         
@@ -119,13 +140,13 @@ for nt in range(Nt):
 
 
 # Save arrays of average population, to be analysed later by pop_plotter.py
-if save_c_avg or save_c_nowind_avg:
+if save_c_avg or save_c_constwind_avg:
     if not os.path.exists(save_array_dir):
         os.mkdir(save_array_dir)
     if save_c_avg:
-        np.savetxt( os.path.join(save_array_dir,fname_c_avg.format(N_period)) , c_avg)
-    if save_c_nowind_avg:
-        np.savetxt( os.path.join(save_array_dir,fname_c_nowind_avg.format(alpha_x0)) , c_nowind_avg)
+        np.save( os.path.join(save_array_dir,fname_c_avg.format(N_period)) , c_avg)
+    if save_c_constwind_avg:
+        np.save( os.path.join(save_array_dir,fname_c_constwind_avg.format(alpha_x0)) , c_constwind_avg)
 
 # Create gif with previouses images
 if make_first_plot:
@@ -143,10 +164,10 @@ Z_1 = np.log10(fft_section_1[:][:].transpose())
 Z_0_blur = cv2.GaussianBlur(Z_0, (7, 7), 0)
 Z_1_blur = cv2.GaussianBlur(Z_1, (7, 7), 0)
 
-Z_0_nowind = np.log10(fft_section_0_nowind[:][:].transpose())
-Z_1_nowind = np.log10(fft_section_1_nowind[:][:].transpose())
-Z_0_blur_nowind = cv2.GaussianBlur(Z_0_nowind, (7, 7), 0)
-Z_1_blur_nowind = cv2.GaussianBlur(Z_1_nowind, (7, 7), 0)
+Z_0_constwind = np.log10(fft_section_0_constwind[:][:].transpose())
+Z_1_constwind = np.log10(fft_section_1_constwind[:][:].transpose())
+Z_0_blur_constwind = cv2.GaussianBlur(Z_0_constwind, (7, 7), 0)
+Z_1_blur_constwind = cv2.GaussianBlur(Z_1_constwind, (7, 7), 0)
 
 # 3D PLOT of fft_section_0
 if show_3Dplot:
@@ -156,8 +177,8 @@ if show_3Dplot:
 # PLOT on k_x,t plane of |FT[c]|, |FT[c_0]|, |FT[c]|/|FT[c_0]|
 kwargs2 = {'Nt':Nt, 'N_period':N_period, 'Z_0_blur':Z_0_blur, \
     'Z_1_blur':Z_1_blur, 'alpha_x0':alpha_x0, 'd_alpha_x':d_alpha_x,\
-    'omega':omega, 'dt':dt, 'Z_0_blur_nowind':Z_0_blur_nowind, \
-    'Z_1_blur_nowind':Z_1_blur_nowind, 'second_plot_name':second_plot_name, 'savefig_dir' : savefig_dir}
+    'omega':omega, 'dt':dt, 'Z_0_blur_constwind':Z_0_blur_constwind, \
+    'Z_1_blur_constwind':Z_1_blur_constwind, 'second_plot_name':second_plot_name, 'savefig_dir' : savefig_dir}
 custom_plots.SecondPlot(**kwargs2)
 
 
