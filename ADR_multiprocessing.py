@@ -36,10 +36,16 @@ def unwrap_params(list_of_params_dicts : Union[ List[dict], dict ]) -> List[dict
         
 def ADR_parameter_span(param_dicts = None):
 
-    from ADR import ADR, ADR_params_dict
+    from ADR import ADR
+
+    def ADR_kwargs_wrap(kwargs):
+        return ADR(**kwargs)
 
     # If no parameter dictionary is provided, we use the default one
     if param_dicts is None:
+
+        from ADR import ADR_params_dict
+
         param_dicts = ADR_params_dict
 
     # We unpack the parameter dictionary
@@ -51,14 +57,10 @@ def ADR_parameter_span(param_dicts = None):
     
     # Run simulations in parallel
     with mp.Pool(processes = N_CPU) as pool:
-        res = pool.starmap(ADR, list_of_params_dicts, chunksize = n_sims // N_CPU)
+        res = pool.map(ADR_kwargs_wrap, list_of_params_dicts, chunksize = n_sims // N_CPU)
 
     return res
 
 if __name__ == '__main__':
 
-    print(
-        unwrap_params(
-        {'a' : [1, 2], 'b' : [3, 4], 'c' : 1, 'd' : [2, 3, 4]}
-        )
-    )
+    ADR_parameter_span()
