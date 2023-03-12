@@ -30,7 +30,7 @@ def ADR(Nx: int, Ny : int, Nt : int, N_period : int,
         c_m : float, c_range: float, 
         savefig_dir : str, gifname : str, fname_c_avg :str, fname_c_constwind_avg:str,
         dnk1 : int, 
-        save_c_avg : bool, save_c_constwind_avg : bool, show_3Dplot : bool, save_array_dir : bool,
+        save_c_avg : bool, save_c_constwind_avg : bool, show_3Dplot : bool, save_array_dir : str,
         second_plot_name : str, rand_seed : int, make_first_plot:bool, 
         N_t_stationary_min : int, stationary_start : bool, 
         stat_pops_dir : str, stationary_c_fname : str, stationary_c_constwind_fname : str):
