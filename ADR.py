@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 import imageio, cv2
 
 import custom_plots     # Custom library with plotting functions
-from init import *      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
+from init import ADR_params_dict      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
 
 def grad_x_vector(M):
     return 0.5*(np.roll(M,1, axis=1) - np.roll(M,-1, axis=1))
@@ -21,10 +21,10 @@ def lapl_2D_vector(M):
 def AD_propagator_vector(M, alpha_x, delta):
     return M + alpha_x*grad_x_vector(M) + delta*lapl_2D_vector(M)
 
-def Chem_propagator_vector(M, a_chem, b):
+def Chem_propagator_vector(M, a_chem, b, dt):
     return M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
 
-def ADR(Nx: int, Ny : int, Nt : int, N_period : int, 
+def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int, 
         dt : float, alpha_x0 : float, d_alpha_x : float, 
         delta : float, b : float, a_chem_m : float, a_chem_range : float, 
         c_m : float, c_range: float, 
@@ -89,15 +89,15 @@ def ADR(Nx: int, Ny : int, Nt : int, N_period : int,
 
 
         c_ad = AD_propagator_vector(c, alpha_x, delta)
-        c_chem = Chem_propagator_vector(c, a_chem, b)
-        c = 0.5 * (AD_propagator_vector(c_chem, alpha_x, delta) + Chem_propagator_vector(c_ad, a_chem, b))
+        c_chem = Chem_propagator_vector(c, a_chem, b, dt)
+        c = 0.5 * (AD_propagator_vector(c_chem, alpha_x, delta) + Chem_propagator_vector(c_ad, a_chem, b, dt))
 
         # Same as above but for CONSTANT WIND
         alpha_x = alpha_x0      
 
         c_ad = AD_propagator_vector(c_constwind, alpha_x, delta)
-        c_chem = Chem_propagator_vector(c_constwind, a_chem, b)
-        c_constwind = 0.5 * (AD_propagator_vector(c_chem, alpha_x, delta) + Chem_propagator_vector(c_ad, a_chem, b))
+        c_chem = Chem_propagator_vector(c_constwind, a_chem, b, dt)
+        c_constwind = 0.5 * (AD_propagator_vector(c_chem, alpha_x, delta) + Chem_propagator_vector(c_ad, a_chem, b, dt))
         
         # Saving stationary arrays if we didn't start from stationariety
         if nt == N_t_stationary and not stationary_initial_cond: 
@@ -193,11 +193,4 @@ def ADR(Nx: int, Ny : int, Nt : int, N_period : int,
 
 if __name__ == '__main__':
 
-    ADR(Nx, Ny, Nt, N_period, dt , alpha_x0 , d_alpha_x, 
-        delta , b, a_chem_m, a_chem_range, 
-        c_m, c_range, 
-        savefig_dir , gifname, fname_c_avg, fname_c_constwind_avg,
-        dnk1 , save_c_avg , save_c_constwind_avg , show_3Dplot , save_array_dir,
-        second_plot_name, rand_seed, make_first_plot, 
-        N_t_stationary_min , stationary_start, 
-        stat_pops_dir , stationary_c_fname, stationary_c_constwind_fname)
+    ADR(**ADR_params_dict)

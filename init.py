@@ -36,3 +36,14 @@ stationary_start = cfg.getboolean('simulation params', 'stationary_start')
 stat_pops_dir = cfg.get('saving','stat_pops_dir')
 stationary_c_fname = os.path.join(stat_pops_dir,cfg.get('saving','stationary_c_fname').format(alpha_x0,d_alpha_x,N_period))
 stationary_c_constwind_fname = os.path.join(stat_pops_dir,cfg.get('saving','stationary_c_constwind_fname').format(alpha_x0))
+
+ADR_keywords = ['Nx','Ny','Nt','N_period','dt','alpha_x0','d_alpha_x','delta','b','a_chem_m','a_chem_range','c_m','c_range',\
+                'savefig_dir','dnk1','save_c_avg','save_c_constwind_avg','gifname','fname_c_avg','fname_c_constwind_avg',\
+                'show_3Dplot','save_array_dir','second_plot_name','rand_seed','make_first_plot','N_t_stationary_min',\
+                'stationary_start','stat_pops_dir','stationary_c_fname','stationary_c_constwind_fname']
+
+ADR_params_dict = {}
+for key in ADR_keywords:
+    if key not in locals():
+        raise ValueError('Key {} not found in ADR_keywords'.format(key))
+    ADR_params_dict[key] = locals()[key]
