@@ -4,7 +4,7 @@ from math import ceil
 import random, os
 import numpy as np
 from timeit import default_timer as timer
-import imageio, cv2
+import imageio
 
 import custom_plots     # Custom library with plotting functions
 from init import *      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
@@ -71,8 +71,6 @@ fft_section_0_constwind = np.zeros((Nt,Nx))    # Same as above but for the const
 fft_section_1_constwind = np.zeros((Nt,Nx))
 filenames= []
 
-c=c0.copy()     # Population subjected to sinusoidal wind
-c_nowind=c0.copy()
 
 c_avg = []      # Average population for each t
 c_constwind_avg = []
@@ -89,9 +87,9 @@ for nt in range(Nt):
     # Same as above but for CONSTANT WIND
     alpha_x = alpha_x0      
 
-    c_ad = AD_propagator_vector(c_nowind)
-    c_chem = Chem_propagator_vector(c_nowind)
-    c_nowind = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
+    c_ad = AD_propagator_vector(c_constwind)
+    c_chem = Chem_propagator_vector(c_constwind)
+    c_constwind = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
     
     # Saving stationary arrays if we didn't start from stationariety
     if nt == N_t_stationary and not stationary_initial_cond: 
@@ -155,6 +153,7 @@ if make_first_plot:
             image = imageio.imread(os.path.join(savefig_dir,filename))
             writer.append_data(image)
 
+'''
 #%%   
 # Gaussain blur and log scale for fft
 dk1 = (2*np.pi/Ny)*dnk1     # Circa pi/4
@@ -179,7 +178,7 @@ kwargs2 = {'Nt':Nt, 'N_period':N_period, 'Z_0_blur':Z_0_blur, \
     'Z_1_blur':Z_1_blur, 'alpha_x0':alpha_x0, 'd_alpha_x':d_alpha_x,\
     'omega':omega, 'dt':dt, 'Z_0_blur_constwind':Z_0_blur_constwind, \
     'Z_1_blur_constwind':Z_1_blur_constwind, 'second_plot_name':second_plot_name, 'savefig_dir' : savefig_dir}
-custom_plots.SecondPlot(**kwargs2)
+custom_plots.SecondPlot(**kwargs2)'''
 
 
 # Print total time elapsed
