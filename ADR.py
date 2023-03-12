@@ -4,7 +4,7 @@ from math import ceil
 import random, os
 import numpy as np
 from timeit import default_timer as timer
-import imageio
+import imageio, cv2
 
 import custom_plots     # Custom library with plotting functions
 from init import *      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
@@ -153,7 +153,6 @@ if make_first_plot:
             image = imageio.imread(os.path.join(savefig_dir,filename))
             writer.append_data(image)
 
-'''
 #%%   
 # Gaussain blur and log scale for fft
 dk1 = (2*np.pi/Ny)*dnk1     # Circa pi/4
@@ -178,7 +177,7 @@ kwargs2 = {'Nt':Nt, 'N_period':N_period, 'Z_0_blur':Z_0_blur, \
     'Z_1_blur':Z_1_blur, 'alpha_x0':alpha_x0, 'd_alpha_x':d_alpha_x,\
     'omega':omega, 'dt':dt, 'Z_0_blur_constwind':Z_0_blur_constwind, \
     'Z_1_blur_constwind':Z_1_blur_constwind, 'second_plot_name':second_plot_name, 'savefig_dir' : savefig_dir}
-custom_plots.SecondPlot(**kwargs2)'''
+custom_plots.SecondPlot(**kwargs2)
 
 
 # Print total time elapsed
