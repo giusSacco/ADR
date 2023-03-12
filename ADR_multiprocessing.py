@@ -4,11 +4,11 @@ import os
 from typing import List, Union
 from collections.abc import Iterable
 
-def unwrap_params(list_of_params_dicts : Union[ List[dict], dict ]):
+def unwrap_params(list_of_params_dicts : Union[ List[dict], dict ]) -> List[dict]:
 
     '''
         We recursively go through the parameter dictionary
-        If any value is an interable, we unpack it
+        If any value is an iterable, we unpack it
     '''
 
     if isinstance(list_of_params_dicts, dict):
@@ -42,3 +42,11 @@ def ADR_parameter_span(param_dicts):
         res = pool.starmap(ADR, list_of_params_dicts, chunksize = n_sims // N_CPU)
 
     return res
+
+if __name__ == '__main__':
+
+    print(
+        unwrap_params(
+        {'a' : [1, 2], 'b' : [3, 4], 'c' : 1, 'd' : [2, 3, 4]}
+        )
+    )
