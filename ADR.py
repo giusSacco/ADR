@@ -28,22 +28,25 @@ if not os.path.exists(stat_pops_dir):
 period = dt*N_period    
 omega = 2*np.pi/period
 
-def grad_x(M,i,j):
-    return 0.5*( M[i][(j+1)%Nx] - M[i][(j-1)%Nx] ) 
 
-def lapl_2D(M,i,j):
-    sides = M[(i+1)%Ny][j] + M[(i-1)%Ny][j] + M[i][(j+1)%Nx] + M[i][(j-1)%Nx]
-    corners = M[(i+1)%Ny][(j+1)%Nx] + M[(i-1)%Ny][(j+1)%Nx] + M[(i+1)%Ny][(j-1)%Nx] + M[(i-1)%Ny][(j-1)%Nx]
-    return -3*M[i][j] + 0.5*sides + 0.25*corners
+def grad_x_vector(M):
+    return 0.5*(np.roll(M,1, axis=1) - np.roll(M,-1, axis=1))
 
-def AD_propagator(M,i,j):
-    return M[i][j] + alpha_x*grad_x(M,i,j) + delta*lapl_2D(M,i,j)
+def lapl_2D_vector(M):
+    sides = np.roll(M,1, axis=0) + np.roll(M,-1, axis=0) + np.roll(M,1, axis=1) + np.roll(M,-1, axis=1)
+    corners = np.roll(M,[1,1],axis=(0,1)) + np.roll(M,[-1,1],axis=(0,1)) + \
+        np.roll(M,[1,-1],axis=(0,1)) + np.roll(M,[-1,-1],axis=(0,1))
+    return -3*M + 0.5*sides + 0.25*corners
+
+def AD_propagator_vector(M):
+    return M + alpha_x*grad_x_vector(M) + delta*lapl_2D_vector(M)
 
 # Chemistry
 a_chem = np.random.uniform(low = a_chem_m-a_chem_range, high = a_chem_m+a_chem_range, size = (Ny,Nx))
 
-def Chem_propagator(M,i,j):
-    return M[i][j]*np.exp(a_chem[i][j]*dt) / ( 1 + M[i][j]*(np.exp(a_chem[i][j]*dt) - 1)*(b/a_chem[i][j]) )
+def Chem_propagator_vector(M):
+    return M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
+
 
 # Stationary condition is considered reached for the first nt > N_t_stationary_min and multiple of N_period (so that the wind phase is 0)
 N_t_stationary = N_period * ceil(N_t_stationary_min/N_period)
@@ -68,33 +71,28 @@ fft_section_0_constwind = np.zeros((Nt,Nx))    # Same as above but for the const
 fft_section_1_constwind = np.zeros((Nt,Nx))
 filenames= []
 
-c_chem = np.zeros((Ny,Nx))  # Used for SWSS
-c_ad = np.zeros((Ny,Nx))
+c=c0.copy()     # Population subjected to sinusoidal wind
+c_nowind=c0.copy()
 
 c_avg = []      # Average population for each t
 c_constwind_avg = []
 
-
 # Time evolution: SWSS
 for nt in range(Nt):
     alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
-    for i in range(Ny):     # Vectorize maybe?
-        for j in range(Nx):
-            c_chem[i][j] = Chem_propagator(c,i,j)
-            c_ad[i][j] = AD_propagator(c,i,j)
-    for i in range(Ny):
-        for j in range(Nx):
-            c[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
 
-    alpha_x = alpha_x0      # Same as above but for constant wind
-    for i in range(Ny):
-        for j in range(Nx):
-            c_chem[i][j] = Chem_propagator(c_constwind,i,j)
-            c_ad[i][j] = AD_propagator(c_constwind,i,j)
-    for i in range(Ny):
-        for j in range(Nx):
-            c_constwind[i][j] = ( AD_propagator(c_chem,i,j) + Chem_propagator(c_ad,i,j) ) / 2
 
+    c_ad = AD_propagator_vector(c)
+    c_chem = Chem_propagator_vector(c)
+    c = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
+
+    # Same as above but for CONSTANT WIND
+    alpha_x = alpha_x0      
+
+    c_ad = AD_propagator_vector(c_nowind)
+    c_chem = Chem_propagator_vector(c_nowind)
+    c_nowind = 0.5 * (AD_propagator_vector(c_chem) + Chem_propagator_vector(c_ad))
+    
     # Saving stationary arrays if we didn't start from stationariety
     if nt == N_t_stationary and not stationary_initial_cond: 
         np.save(stationary_c_fname, c) # Note that one of them can be already existing ad is overwritten 
@@ -137,7 +135,7 @@ for nt in range(Nt):
         custom_plots.FirstPlot(**kwargs)
 
         filenames.append(kwargs['filename'])
-    if nt % 5 == 0:    
+    if nt % 100 == 0:    
         print(nt)
 
 
