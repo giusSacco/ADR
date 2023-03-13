@@ -1,13 +1,9 @@
 ## ToDo Giuseppe
 
-* Merge
-* Aggiungere if per vento costante e FT
-
 
 ## ToDo Lorenzo
 
-* Implementare multiple seed
-* Dai un'occhiata ai merge passati, optional: e al branch parallel
+* Provare multiple seed
 
 ## General ToDo
 
