@@ -30,29 +30,39 @@ sql_create_sims_table = """ CREATE TABLE IF NOT EXISTS simulations (
                                         sim_id integer PRIMARY KEY,
                                         Nx integer NOT NULL,
                                         Ny integer NOT NULL,
-                                        Delta float NOT NULL,
-                                        eps_0 float NOT NULL,
-                                        d_eps float NOT NULL, 
-                                        Gamma float NOT NULL,
-                                        KbT float NOT NULL,
-                                        omega float NOT NULL,
-                                        ncycles integer,
-                                        times array,
-                                        steady_mask array,
-                                        Relax boolean, 
-                                        rho_0 array,
-                                        dt float,
-                                        sim_date text
+                                        Nt integer NOT NULL,
+                                        N_period integer NOT NULL,
+                                        alpha_x0 real NOT NULL,
+                                        d_alpha_x real NOT NULL,
+                                        delta real NOT NULL,
+                                        dt real NOT NULL,
+                                        b real NOT NULL,
+                                        a_chem_m real NOT NULL,
+                                        a_chem_range real NOT NULL,
+                                        c_m real NOT NULL,
+                                        c_range real NOT NULL,
+                                        rand_seed integer NOT NULL,
+                                        stationary_start integer NOT NULL,
+                                        N_t_stationaty_min integer NOT NULL,
+                                        do_const_wind boolean NOT NULL,
+                                        do_FT boolean NOT NULL,
+                                        savefig_dir text NOT NULL,
+                                        dnk1 integer NOT NULL,
+                                        show_3D_plot boolean NOT NULL,
+                                        make_first_plot boolean NOT NULL,
+                                        stat_pops_dir text NOT NULL,
+                                        stationary_c_fname text NOT NULL,
+                                        stationary_c_constwind_fname text NOT NULL,
+                                        save_array_dir text NOT NULL,
+                                        save_c_avg boolean NOT NULL,
+                                        fname_c_avg text NOT NULL,
+                                        save_c_constwind_avg boolean NOT NULL,
+                                        fname_c_constwind_avg text NOT NULL,
+                                        gifname text NOT NULL,
+                                        second_plot_name text NOT NULL,
+                                        sim_date text 
                                 );"""
 
-def get_hash(Delta, eps0, d_eps, Gamma, KbT, omega, Relax, dt):
-
-    string = f'D:{Delta:.12e};E0:{eps0:.12e};DE:{d_eps:.12e};GA:{Gamma:.12e};KT:{KbT:.12e};OM:{omega:.12e};DT:{dt:.12e};RE:{Relax:d}'
-    
-    return hash_string(string)
-
-def hash_string(string):
-    return sha256(string.encode('utf-8')).hexdigest()
 
 def get_today():
     return datetime.today().strftime('%Y-%m-%d %H:%M')
@@ -94,9 +104,8 @@ def create_simulation(conn, simulation):
 
     while True:
         try:
-            sql = ''' INSERT INTO simulations (Probability, param_hash, Delta, eps_0, d_eps, Gamma, KbT, 
-                                                omega, ncycles, times, steady_mask, Relax, rho_0, dt,sim_date)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+            sql = ''' INSERT INTO simulations (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationaty_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3D_plot, make_first_plot, stat_pops_dir, stationary_c_fname, stationary_c_constwind_fname, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name, sim_date)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
             cur = conn.cursor()
             cur.execute(sql, simulation)
             conn.commit()
@@ -144,36 +153,12 @@ def Connection(name = ':memory:'):
     
     conn.close()
 
-def save_simulation(conn, Gn, eps0, Delta, d_eps, omega, times, dt, rho_0, Relax , Gamma_c , KbT):
+def save_simulation(conn, Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationaty_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3D_plot, make_first_plot, stat_pops_dir, stationary_c_fname, stationary_c_constwind_fname, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name):
     
     date = get_today()
-
-    hash_string = get_hash(Delta, eps0, d_eps, Gamma_c, KbT, omega, Relax, dt)
-
-    ncycles = int(np.ceil(omega*times[-1]/(2*np.pi)))
-
-    if Relax and Gamma_c:
-        cycles_transient = np.ceil( omega/ Gamma_c )
-        n_transient = min(np.ceil ( cycles_transient * 2*np.pi / (omega*dt) ), len(times))
-        steady_mask = times >= n_transient*dt
-    else:
-        steady_mask = np.array([True]*len(times))
-
-    sim = (Gn, hash_string, Delta, eps0, d_eps, Gamma_c, KbT, omega, ncycles, times, steady_mask, Relax, np.array(rho_0), dt,date)
+    sim = (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationaty_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3D_plot, make_first_plot, stat_pops_dir, stationary_c_fname, stationary_c_constwind_fname, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name, date)
 
     create_simulation(conn, sim)
-
-def check_simulation(conn, eps0, Delta, d_eps, omega, times, dt, rho_0, Relax , Gamma_c , KbT):
-    
-    hash_string = get_hash(Delta, eps0, d_eps, Gamma_c, KbT, omega, Relax, dt)
-
-    rows = select_from_hash(conn, hash_string)
-
-    for P, rho_0_found in rows:
-        if np.allclose(rho_0_found, rho_0):
-            return P
-    
-    return None
 
 def init_db(path):
     with Connection(path) as conn:
