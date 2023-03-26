@@ -19,7 +19,7 @@ def unwrap_params(list_of_params_dicts : Union[ List[dict], dict ]) -> List[dict
 
         for key, value in param_dicts.items():
             #  If we find a value that is an iterable, we unpack it
-            if isinstance(value, Iterable):
+            if isinstance(value, Iterable) and not isinstance(value, str):
                 # We remove the dictionary from the list
                 list_of_params_dicts.remove(param_dicts)
                 # We create a new dictionary for every value in the iterable
@@ -30,7 +30,7 @@ def unwrap_params(list_of_params_dicts : Union[ List[dict], dict ]) -> List[dict
                     list_of_params_dicts.append(new_dict)
                 # We recursively call the function to unpack the new dictionaries
                 return unwrap_params(list_of_params_dicts)
-    # If we don't find any iterable, we
+    # If we don't find any iterable, we return the list of dictionaries
     return list_of_params_dicts
 
         
@@ -63,4 +63,8 @@ def ADR_parameter_span(param_dicts = None):
 
 if __name__ == '__main__':
 
-    ADR_parameter_span()
+    from ADR import ADR_params_dict
+
+    ADR_params_dict['N_period'] = [50, 100, 150]
+
+    ADR_parameter_span(ADR_params_dict)
