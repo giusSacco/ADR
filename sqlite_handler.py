@@ -5,6 +5,7 @@ from hashlib import sha256
 from contextlib import contextmanager
 from datetime import datetime
 from time import sleep
+from typing import List, Tuple, Union
 
 def adapt_array(arr):
     """
@@ -43,16 +44,14 @@ sql_create_sims_table = """ CREATE TABLE IF NOT EXISTS simulations (
                                         c_range real NOT NULL,
                                         rand_seed integer NOT NULL,
                                         stationary_start integer NOT NULL,
-                                        N_t_stationaty_min integer NOT NULL,
+                                        N_t_stationary_min integer NOT NULL,
                                         do_const_wind boolean NOT NULL,
                                         do_FT boolean NOT NULL,
                                         savefig_dir text NOT NULL,
                                         dnk1 integer NOT NULL,
-                                        show_3D_plot boolean NOT NULL,
+                                        show_3Dplot boolean NOT NULL,
                                         make_first_plot boolean NOT NULL,
                                         stat_pops_dir text NOT NULL,
-                                        stationary_c_fname text NOT NULL,
-                                        stationary_c_constwind_fname text NOT NULL,
                                         save_array_dir text NOT NULL,
                                         save_c_avg boolean NOT NULL,
                                         fname_c_avg text NOT NULL,
@@ -60,9 +59,15 @@ sql_create_sims_table = """ CREATE TABLE IF NOT EXISTS simulations (
                                         fname_c_constwind_avg text NOT NULL,
                                         gifname text NOT NULL,
                                         second_plot_name text NOT NULL,
+                                        c_avg array NOT NULL,
+                                        N_t_stationary integer NOT NULL,
+                                        c_constwind_avg array,
+                                        c_full_frame_one_per array,
                                         sim_date text 
                                 );"""
 
+
+params = ['Nx', 'Ny', 'Nt', 'N_period', 'alpha_x0', 'd_alpha_x', 'delta', 'dt', 'b', 'a_chem_m', 'a_chem_range', 'c_m', 'c_range', 'rand_seed', 'stationary_start', 'N_t_stationary_min', 'do_const_wind', 'do_FT', 'savefig_dir', 'dnk1', 'show_3Dplot', 'make_first_plot', 'stat_pops_dir', 'save_array_dir', 'save_c_avg', 'fname_c_avg', 'save_c_constwind_avg', 'fname_c_constwind_avg', 'gifname', 'second_plot_name', 'c_avg', 'N_t_stationary', 'c_constwind_avg', 'c_full_frame_one_per']
 
 def get_today():
     return datetime.today().strftime('%Y-%m-%d %H:%M')
@@ -94,25 +99,34 @@ def create_table(conn, create_table_sql):
     except Exception as e:
         print(f'CREATE TABLE {type(e).__name__} :  {e}')
 
-def create_simulation(conn, simulation):
+def create_simulation(conn, simulation, maxtries = 100):
     """
     Create a new project into the simulations table
     :param conn:
     :param project:
     :return: id
     """
-
+    i = 0
     while True:
+        i+=1
         try:
-            sql = ''' INSERT INTO simulations (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationaty_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3D_plot, make_first_plot, stat_pops_dir, stationary_c_fname, stationary_c_constwind_fname, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name, sim_date)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+            sql = ''' INSERT INTO simulations (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, 
+                                                c_m, c_range, rand_seed, stationary_start, N_t_stationary_min, 
+                                                do_const_wind, do_FT, savefig_dir, dnk1, show_3Dplot, 
+                                                make_first_plot, stat_pops_dir, 
+                                                save_array_dir, save_c_avg, fname_c_avg, 
+                                                save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name,
+                                                  c_avg, N_t_stationary, c_constwind_avg, c_full_frame_one_per, sim_date)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
             cur = conn.cursor()
             cur.execute(sql, simulation)
             conn.commit()
             return cur.lastrowid
         except Exception as e:
+            if i > maxtries:
+                raise e
             # print(f'CREATE SIM {type(e).__name__} :  {e}')
-            sleep(0.001)
+            sleep(0.01)
 
 def select_all_sims(conn):
 
@@ -129,16 +143,23 @@ def select_all_sims(conn):
 
     return rows
 
-def select_from_hash(conn, hash_string):
+def select_from_param(conn, param : str, value : Union[str, int, float], 
+                    params_to_return : List[str] = ['c_avg','N_t_stationary','c_constwind_avg' ]):
 
     """
-    Query all rows in the simulation table
+    Query rows in the simulation table
     :param conn: the Connection object
-    :return:
+    :param param: the parameter to query
+    :param value: the value of the parameter
+    :param params_to_return: the parameters to return
     """
+
+    for p in params_to_return:
+        if p not in params:
+            raise ValueError(f'Parameter {p} not in {params}')
 
     cur = conn.cursor()
-    cur.execute("SELECT Probability, rho_0 FROM simulations WHERE param_hash=?", (hash_string,))
+    cur.execute(f"SELECT {','.join(params_to_return)} FROM simulations WHERE {param}=?", (value,))
 
     rows = cur.fetchall()
 
@@ -153,12 +174,22 @@ def Connection(name = ':memory:'):
     
     conn.close()
 
-def save_simulation(conn, Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationaty_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3D_plot, make_first_plot, stat_pops_dir, stationary_c_fname, stationary_c_constwind_fname, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name):
+def save_simulation(conn, Nx, Ny, Nt, N_period, 
+                    alpha_x0, d_alpha_x, delta, 
+                    dt, b, a_chem_m, a_chem_range, 
+                    c_m, c_range, 
+                    rand_seed, stationary_start, N_t_stationary_min, 
+                    do_const_wind, do_FT, savefig_dir, 
+                    dnk1, show_3Dplot, make_first_plot, 
+                    stat_pops_dir, save_array_dir, save_c_avg, 
+                    fname_c_avg, save_c_constwind_avg, 
+                    fname_c_constwind_avg, gifname, second_plot_name, 
+                    c_avg, N_t_stationary, c_constwind_avg, 
+                    c_full_frame_one_per, maxtries = 100):
     
     date = get_today()
-    sim = (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationaty_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3D_plot, make_first_plot, stat_pops_dir, stationary_c_fname, stationary_c_constwind_fname, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name, date)
-
-    create_simulation(conn, sim)
+    sim = (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationary_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3Dplot, make_first_plot, stat_pops_dir, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name, c_avg, N_t_stationary, c_constwind_avg, c_full_frame_one_per, date)
+    create_simulation(conn, sim, maxtries=maxtries)
 
 def init_db(path):
     with Connection(path) as conn:

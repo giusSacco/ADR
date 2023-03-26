@@ -8,6 +8,9 @@ import imageio, cv2
 
 import custom_plots     # Custom library with plotting functions
 from init import ADR_params_dict      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
+from sqlite_handler import init_db, save_simulation, Connection
+db_path = './Simulations.db'
+init_db(db_path)
 
 def grad_x_vector(M):
     return 0.5*(np.roll(M,1, axis=1) - np.roll(M,-1, axis=1))
@@ -22,7 +25,8 @@ def AD_propagator_vector(M, alpha_x, delta):
     return M + alpha_x*grad_x_vector(M) + delta*lapl_2D_vector(M)
 
 def Chem_propagator_vector(M, a_chem, b, dt):
-    return M*np.exp(a_chem*dt) / ( 1 + M*(np.exp(a_chem*dt) - 1)*(b/a_chem) )
+    _exp = np.exp(a_chem*dt)
+    return M*_exp / ( 1 + M*(_exp - 1)*(b/a_chem) )
 
 def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int, 
         dt : float, alpha_x0 : float, d_alpha_x : float, 
@@ -33,7 +37,7 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         save_c_avg : bool, save_c_constwind_avg : bool, show_3Dplot : bool, save_array_dir : str,
         second_plot_name : str, rand_seed : int, make_first_plot:bool, 
         N_t_stationary_min : int, stationary_start : bool, 
-        stat_pops_dir : str, stationary_c_fname : str, stationary_c_constwind_fname : str, do_const_wind : bool, do_FT : bool):
+        stat_pops_dir : str, do_const_wind : bool, do_FT : bool):
 
     timer_start = timer()
 
@@ -62,16 +66,11 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
     # Population
     # Stationary start is chosen by the user, but if files are not present, stationary_initial_cond is still False
     # It would be nice to decouple sinusoidal and constant wind files. Here we need both
-    stationary_initial_cond = os.path.exists(stationary_c_fname) and os.path.exists(stationary_c_constwind_fname) and stationary_start
-    if stationary_initial_cond:    # If stationary files are present and user chose stationary intial cond.
-        c = np.load(stationary_c_fname)
-        if do_const_wind:
-            c_constwind = np.load(stationary_c_constwind_fname)
-    else:
-        c = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
-        if do_const_wind:
-            c_constwind=c.copy()
-        Nt += N_t_stationary # If files are not present, we create it first and than proceed normally when stationariety is reached
+
+    c = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
+    if do_const_wind:
+        c_constwind=c.copy()
+    Nt += N_t_stationary # If files are not present, we create it first and than proceed normally when stationariety is reached
 
     if do_FT:
         # Initialise matrices
@@ -84,13 +83,13 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
 
 
     c_avg = []      # Average population for each t
+    c_full_frame_one_per = []   # Full frame of population for one period
     if do_const_wind:
         c_constwind_avg = []
 
     # Time evolution: SWSS
     for nt in range(Nt):
         alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
-
 
         c_ad = AD_propagator_vector(c, alpha_x, delta)
         c_chem = Chem_propagator_vector(c, a_chem, b, dt)
@@ -104,11 +103,11 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
             c_chem = Chem_propagator_vector(c_constwind, a_chem, b, dt)
             c_constwind = 0.5 * (AD_propagator_vector(c_chem, alpha_x, delta) + Chem_propagator_vector(c_ad, a_chem, b, dt))
         
-        # Saving stationary arrays if we didn't start from stationariety
-        if nt == N_t_stationary and not stationary_initial_cond: 
-            np.save(stationary_c_fname, c) # Note that one of them can be already existing ad is overwritten
-            if do_const_wind:
-                np.save(stationary_c_constwind_fname, c_constwind)
+        # # Saving stationary arrays if we didn't start from stationariety
+        # if nt == N_t_stationary and not stationary_initial_cond: 
+        #     np.save(stationary_c_fname, c) # Note that one of them can be already existing ad is overwritten
+        #     if do_const_wind:
+        #         np.save(stationary_c_constwind_fname, c_constwind)
         
         # Update average population
         if nt >= N_t_stationary or not stationary_start: # If user didn't request stationary start we save also the transient population
@@ -151,7 +150,28 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         if nt % 100 == 0:    
             print(nt)
 
+    c_avg = np.array(c_avg)
+    c_full_frame_one_per = np.array(c_full_frame_one_per)
+    if do_const_wind:
+        c_constwind_avg = np.array(c_constwind_avg)
+    else:
+        c_constwind_avg = None
 
+    with Connection(db_path) as conn:
+        save_simulation(conn, Nx, Ny, Nt, N_period, 
+                    alpha_x0, d_alpha_x, delta, 
+                    dt, b, a_chem_m, a_chem_range, 
+                    c_m, c_range, 
+                    rand_seed, stationary_start, N_t_stationary_min, 
+                    do_const_wind, do_FT, savefig_dir, 
+                    dnk1, show_3Dplot, make_first_plot, 
+                    stat_pops_dir, save_array_dir, save_c_avg, 
+                    fname_c_avg, save_c_constwind_avg, 
+                    fname_c_constwind_avg, gifname, second_plot_name, 
+                    c_avg, N_t_stationary, 
+                    c_constwind_avg,
+                    c_full_frame_one_per, maxtries = 100)
+        
     # Save arrays of average population, to be analysed later by pop_plotter.py
     if save_c_avg or save_c_constwind_avg:
         if not os.path.exists(save_array_dir):
