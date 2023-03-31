@@ -36,12 +36,12 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         dt : float, alpha_x0 : float, d_alpha_x : float, 
         delta : float, b : float, a_chem_m : float, a_chem_range : float, 
         c_m : float, c_range: float, 
-        savefig_dir : str, gifname : str, fname_c_avg :str, fname_c_constwind_avg:str,
+        savefig_dir : str, gifname : str,
         dnk1 : int, 
-        save_c_avg : bool, save_c_constwind_avg : bool, show_3Dplot : bool, save_array_dir : str,
+        show_3Dplot : bool,
         second_plot_name : str, rand_seed : int, make_first_plot:bool, 
-        N_t_stationary_min : int, stationary_start : bool, 
-        stat_pops_dir : str, do_const_wind : bool, do_FT : bool):
+        N_t_stationary_min : int,
+        do_const_wind : bool, do_FT : bool):
 
     timer_start = timer()
 
@@ -53,9 +53,6 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
     # Create Savefig Directory if not present
     if not os.path.exists(savefig_dir):
         os.mkdir(savefig_dir)
-    # Create directory where stationary populations are saved
-    if not os.path.exists(stat_pops_dir):
-        os.mkdir(stat_pops_dir)
 
     # Advection & Diffusion
     period = dt*N_period    
@@ -107,17 +104,13 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
             c_chem = Chem_propagator_vector(c_constwind, a_chem, b, dt)
             c_constwind = 0.5 * (AD_propagator_vector(c_chem, alpha_x, delta) + Chem_propagator_vector(c_ad, a_chem, b, dt))
         
-        # # Saving stationary arrays if we didn't start from stationariety
-        # if nt == N_t_stationary and not stationary_initial_cond: 
-        #     np.save(stationary_c_fname, c) # Note that one of them can be already existing ad is overwritten
-        #     if do_const_wind:
-        #         np.save(stationary_c_constwind_fname, c_constwind)
-        
-        # Update average population
-        if nt >= N_t_stationary or not stationary_start: # If user didn't request stationary start we save also the transient population
-            c_avg.append(c.mean())
-            if do_const_wind:
-                c_constwind_avg.append(c_constwind.mean())            
+        # ! We chose to ALWAYS save the transient
+        # ! The steady state can then be selected with
+        # !     c_avg = c_avg[N_t_stationary:]
+        # ! N_t_stationary is preent in the database
+        c_avg.append(c.mean())
+        if do_const_wind:
+            c_constwind_avg.append(c_constwind.mean())            
         
         if do_FT:
             # Fourier transform of population
@@ -161,30 +154,22 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
     else:
         c_constwind_avg = None
 
+    elapsed_time = timer()-timer_start
+
     with Connection(db_path) as conn:
         save_simulation(conn, Nx, Ny, Nt, N_period, 
                     alpha_x0, d_alpha_x, delta, 
                     dt, b, a_chem_m, a_chem_range, 
                     c_m, c_range, 
-                    rand_seed, stationary_start, N_t_stationary_min, 
+                    rand_seed, N_t_stationary_min, 
                     do_const_wind, do_FT, savefig_dir, 
                     dnk1, show_3Dplot, make_first_plot, 
-                    stat_pops_dir, save_array_dir, save_c_avg, 
-                    fname_c_avg, save_c_constwind_avg, 
-                    fname_c_constwind_avg, gifname, second_plot_name, 
+                    gifname, second_plot_name, 
                     c_avg, N_t_stationary, 
                     c_constwind_avg,
-                    c_full_frame_one_per, maxtries = 100)
+                    c_full_frame_one_per, 
+                    elapsed_time, maxtries = 100)
         
-    # Save arrays of average population, to be analysed later by pop_plotter.py
-    if save_c_avg or save_c_constwind_avg:
-        if not os.path.exists(save_array_dir):
-            os.mkdir(save_array_dir)
-        if save_c_avg:
-            np.save( os.path.join(save_array_dir,fname_c_avg.format(N_period)) , c_avg)
-        if save_c_constwind_avg and do_const_wind:
-            np.save( os.path.join(save_array_dir,fname_c_constwind_avg.format(alpha_x0)) , c_constwind_avg)
-
     # Create gif with previouses images
     if make_first_plot and do_FT:
         with imageio.get_writer(os.path.join(savefig_dir,gifname), mode='I', fps = 2) as writer:
@@ -223,7 +208,7 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         custom_plots.SecondPlot(**kwargs2)
 
     # Print total time elapsed
-    print(f'Time elapsed: {timer()-timer_start:.1f}s')
+    print(f'Time elapsed: {elapsed_time:.1f}s')
 
 if __name__ == '__main__':
 

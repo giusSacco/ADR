@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from time import sleep
 from typing import List, Tuple, Union
+from hashlib import sha256
 
 def adapt_array(arr):
     """
@@ -43,7 +44,6 @@ sql_create_sims_table = """ CREATE TABLE IF NOT EXISTS simulations (
                                         c_m real NOT NULL,
                                         c_range real NOT NULL,
                                         rand_seed integer NOT NULL,
-                                        stationary_start integer NOT NULL,
                                         N_t_stationary_min integer NOT NULL,
                                         do_const_wind boolean NOT NULL,
                                         do_FT boolean NOT NULL,
@@ -51,23 +51,41 @@ sql_create_sims_table = """ CREATE TABLE IF NOT EXISTS simulations (
                                         dnk1 integer NOT NULL,
                                         show_3Dplot boolean NOT NULL,
                                         make_first_plot boolean NOT NULL,
-                                        stat_pops_dir text NOT NULL,
-                                        save_array_dir text NOT NULL,
-                                        save_c_avg boolean NOT NULL,
-                                        fname_c_avg text NOT NULL,
-                                        save_c_constwind_avg boolean NOT NULL,
-                                        fname_c_constwind_avg text NOT NULL,
                                         gifname text NOT NULL,
                                         second_plot_name text NOT NULL,
                                         c_avg array NOT NULL,
                                         N_t_stationary integer NOT NULL,
                                         c_constwind_avg array,
                                         c_full_frame_one_per array,
+                                        elapsed_time real,
+                                        param_hash text NOT NULL,
                                         sim_date text 
                                 );"""
 
 
-params = ['Nx', 'Ny', 'Nt', 'N_period', 'alpha_x0', 'd_alpha_x', 'delta', 'dt', 'b', 'a_chem_m', 'a_chem_range', 'c_m', 'c_range', 'rand_seed', 'stationary_start', 'N_t_stationary_min', 'do_const_wind', 'do_FT', 'savefig_dir', 'dnk1', 'show_3Dplot', 'make_first_plot', 'stat_pops_dir', 'save_array_dir', 'save_c_avg', 'fname_c_avg', 'save_c_constwind_avg', 'fname_c_constwind_avg', 'gifname', 'second_plot_name', 'c_avg', 'N_t_stationary', 'c_constwind_avg', 'c_full_frame_one_per']
+params = ['Nx', 'Ny', 'Nt', 'N_period', 'alpha_x0', 'd_alpha_x', 
+          'delta', 'dt', 'b', 'a_chem_m', 'a_chem_range', 'c_m', 'c_range', 
+          'rand_seed', 'N_t_stationary_min', 'do_const_wind', 'do_FT', 
+          'savefig_dir', 'dnk1', 'show_3Dplot', 'make_first_plot', 
+          'gifname', 'second_plot_name', 'c_avg', 'N_t_stationary', 
+          'c_constwind_avg', 'c_full_frame_one_per', 'elapsed_time', 'param_hash', 'sim_date']
+
+params_in_hash = ['Nx', 'Ny', 'Nt', 'N_period', 'alpha_x0', 'd_alpha_x', 'delta', 'dt', 'b', 'a_chem_m', 'a_chem_range', 'c_m', 'c_range', 'rand_seed', 'N_t_stationary_min']
+
+def get_hash(Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, 
+             delta, dt, b, a_chem_m, a_chem_range, 
+             c_m, c_range, rand_seed, 
+             N_t_stationary_min):
+
+    string = ''
+
+    for param in params_in_hash:
+        string += f'{param}:{eval(param)}:'
+    
+    return hash_string(string)
+
+def hash_string(string):
+    return sha256(string.encode('utf-8')).hexdigest()
 
 def get_today():
     return datetime.today().strftime('%Y-%m-%d %H:%M')
@@ -110,14 +128,10 @@ def create_simulation(conn, simulation, maxtries = 100):
     while True:
         i+=1
         try:
-            sql = ''' INSERT INTO simulations (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, 
-                                                c_m, c_range, rand_seed, stationary_start, N_t_stationary_min, 
-                                                do_const_wind, do_FT, savefig_dir, dnk1, show_3Dplot, 
-                                                make_first_plot, stat_pops_dir, 
-                                                save_array_dir, save_c_avg, fname_c_avg, 
-                                                save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name,
-                                                  c_avg, N_t_stationary, c_constwind_avg, c_full_frame_one_per, sim_date)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+            sql = ''' INSERT INTO simulations ('''
+            sql += ','.join(params)
+            sql += ''') '''
+            sql +=  'VALUES('+ ','.join(['?']*len(params)) +')'
             cur = conn.cursor()
             cur.execute(sql, simulation)
             conn.commit()
@@ -178,18 +192,21 @@ def save_simulation(conn, Nx, Ny, Nt, N_period,
                     alpha_x0, d_alpha_x, delta, 
                     dt, b, a_chem_m, a_chem_range, 
                     c_m, c_range, 
-                    rand_seed, stationary_start, N_t_stationary_min, 
+                    rand_seed, N_t_stationary_min, 
                     do_const_wind, do_FT, savefig_dir, 
                     dnk1, show_3Dplot, make_first_plot, 
-                    stat_pops_dir, save_array_dir, save_c_avg, 
-                    fname_c_avg, save_c_constwind_avg, 
-                    fname_c_constwind_avg, gifname, second_plot_name, 
+                    gifname, second_plot_name, 
                     c_avg, N_t_stationary, c_constwind_avg, 
-                    c_full_frame_one_per, maxtries = 100):
+                    c_full_frame_one_per, elapsed_time, maxtries = 100):
     
     date = get_today()
-    sim = (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, stationary_start, N_t_stationary_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3Dplot, make_first_plot, stat_pops_dir, save_array_dir, save_c_avg, fname_c_avg, save_c_constwind_avg, fname_c_constwind_avg, gifname, second_plot_name, c_avg, N_t_stationary, c_constwind_avg, c_full_frame_one_per, date)
-    create_simulation(conn, sim, maxtries=maxtries)
+
+    param_hash = get_hash(Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, N_t_stationary_min)
+    if select_from_param(conn, 'param_hash', param_hash, params_to_return = ['param_hash']):
+        return
+    else:
+        sim = (Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, delta, dt, b, a_chem_m, a_chem_range, c_m, c_range, rand_seed, N_t_stationary_min, do_const_wind, do_FT, savefig_dir, dnk1, show_3Dplot, make_first_plot, gifname, second_plot_name, c_avg, N_t_stationary, c_constwind_avg, c_full_frame_one_per, elapsed_time, param_hash, date)
+        create_simulation(conn, sim, maxtries=maxtries)
 
 def init_db(path):
     with Connection(path) as conn:
