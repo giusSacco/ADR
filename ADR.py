@@ -8,7 +8,11 @@ import imageio, cv2
 
 import custom_plots     # Custom library with plotting functions
 from init import ADR_params_dict      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
+
+from tqdm import tqdm
+
 from sqlite_handler import init_db, save_simulation, Connection
+
 db_path = './Simulations.db'
 init_db(db_path)
 
@@ -88,7 +92,7 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         c_constwind_avg = []
 
     # Time evolution: SWSS
-    for nt in range(Nt):
+    for nt in tqdm(range(Nt)):
         alpha_x = alpha_x0 + d_alpha_x*np.sin(omega*nt*dt)      # Sinusoidal Wind
 
         c_ad = AD_propagator_vector(c, alpha_x, delta)
@@ -147,8 +151,8 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
                 custom_plots.FirstPlot(**kwargs)
 
                 filenames.append(kwargs['filename'])
-        if nt % 100 == 0:    
-            print(nt)
+        # if nt % 100 == 0:    
+        #     print(nt)
 
     c_avg = np.array(c_avg)
     c_full_frame_one_per = np.array(c_full_frame_one_per)

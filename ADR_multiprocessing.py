@@ -6,6 +6,8 @@ from collections.abc import Iterable
 
 from configparser import ConfigParser
 
+from ADR import ADR
+
 def unwrap_params(list_of_params_dicts : Union[ List[dict], dict ]) -> List[dict]:
     '''
         We recursively go through the parameter dictionary, and
@@ -53,14 +55,11 @@ def params_consistency_check(list_of_params_dicts):
         param_dicts['second_plot_name'] = second_plot_name
 
     return
-        
-def ADR_parameter_span(param_dicts = None):
 
-    from ADR import ADR
-
-    def ADR_kwargs_wrap(kwargs):
-        print('a')
+def ADR_kwargs_wrap(kwargs):
         return ADR(**kwargs)
+    
+def ADR_parameter_span(param_dicts = None):
 
     # If no parameter dictionary is provided, we use the default one
     if param_dicts is None:
@@ -78,7 +77,7 @@ def ADR_parameter_span(param_dicts = None):
     
     # Run simulations in parallel
     with mp.Pool(processes = N_CPU) as pool:
-        pool.map(ADR_kwargs_wrap, list_of_params_dicts, chunksize = n_sims // N_CPU)
+        pool.map(ADR_kwargs_wrap, list_of_params_dicts, chunksize = 1) # optimize chunksize
         pool.close()
         pool.join()
 
@@ -92,5 +91,6 @@ if __name__ == '__main__':
     from ADR import ADR_params_dict
 
     ADR_params_dict['N_period'] = [50, 100, 150]
+    ADR_params_dict['d_alpha_x'] = [0.05, 0.1, 0.15]
 
     ADR_parameter_span(ADR_params_dict)
