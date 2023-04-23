@@ -20,3 +20,9 @@
 ## Quadro Generale
 * Vogliamo capire come i parametri delle oscillazioni di popolazione dipendono dal vento: lo facciamo dalla FT delle sinusoidi alla popolazione e facendo i grafici di questi parametri in funzione dei parametri del vento. Opt: ogni punto sarà la media di quello ottenuto con vari seed.
 * Vogliamo capire la correlazione temporale fra vento e popolazione tramite le funzioni di correlazione.
+
+
+# For next time
+
+Abbiamo capito che il seed e una proprieta importante cha ha un grande effetto sul valor medio della poplazione. However, sembrerebbe che la risposta alla perturbazione sia sempre la stessa.
+Investigare ampiezza e fase dell'oscillazione.
