@@ -1,11 +1,3 @@
-# Ignore all directories
-
-/*
-# Except the following
-!Arrays_seed2/
-!StationaryPops
-!StatArrays
-
 # Database
 !*.db
 
