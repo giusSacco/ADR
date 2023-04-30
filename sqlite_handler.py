@@ -5,7 +5,7 @@ from hashlib import sha256
 from contextlib import contextmanager
 from datetime import datetime
 from time import sleep
-from typing import List, Tuple, Union, Sequence
+from typing import List, Tuple, Union
 from hashlib import sha256
 
 def adapt_array(arr):
@@ -174,28 +174,6 @@ def select_from_param(conn, param : str, value : Union[str, int, float],
 
     cur = conn.cursor()
     cur.execute(f"SELECT {','.join(params_to_return)} FROM simulations WHERE {param}=?", (value,))
-
-    rows = cur.fetchall()
-
-    return rows
-
-def select_from_multiple_params(conn, params_to_query: Sequence[str], values :  Sequence[Union[str, int, float]],
-                                 params_to_return : List[str] = ['c_avg','N_t_stationary','c_constwind_avg' ]):
-    
-    """
-    Query rows in the simulation table
-    :param conn: the Connection object
-    :param params_to_query: the parameters to query
-    :param values: the values of the parameters
-    :param params_to_return: the parameters to return
-    """
-
-    for p in params_to_return:
-        if p not in params:
-            raise ValueError(f'Parameter {p} not in {params}')
-
-    cur = conn.cursor()
-    cur.execute(f"SELECT {','.join(params_to_return)} FROM simulations WHERE {'AND '.join([f'{p}=? ' for p in params_to_query])}", tuple(values))
 
     rows = cur.fetchall()
 
