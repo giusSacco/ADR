@@ -1,5 +1,6 @@
 # Database
 !*.db
+ADR_venv
 
 # The rest is the default template for python
 
