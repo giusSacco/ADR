@@ -5,7 +5,7 @@ from hashlib import sha256
 from contextlib import contextmanager
 from datetime import datetime
 from time import sleep
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Sequence
 from hashlib import sha256
 
 def adapt_array(arr):
