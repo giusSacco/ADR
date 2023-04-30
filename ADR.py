@@ -1,19 +1,18 @@
 # Survival of the luckiest
-#%%
 from math import ceil
-import random, os
+import os
 import numpy as np
 from timeit import default_timer as timer
-import imageio, cv2
+import imageio, cv2 # For gif creation
 
 import custom_plots     # Custom library with plotting functions
 from init import ADR_params_dict      # Parsing all parameters and general infos from ini file 'parameters.ini' through 'init.py'
 
-from tqdm import tqdm
+from tqdm import tqdm # Progress bar
 
-from sqlite_handler import init_db, save_simulation, Connection
+from sqlite_handler import init_db, save_simulation, Connection # Database handler
 
-db_path = './Simulations.db'
+db_path = os.path.join('.','Simulations.db')
 init_db(db_path)
 
 def grad_x_vector(M):
@@ -44,14 +43,10 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         do_const_wind : bool, do_FT : bool):
 
     timer_start = timer()
-
-    print(f'alpha_0 = {alpha_x0}, d_alpha = {d_alpha_x}, omega = 2pi/{N_period}')
-
-    random.seed(rand_seed)
     np.random.seed(rand_seed)
 
-    # Create Savefig Directory if not present
-    if not os.path.exists(savefig_dir):
+    # Create Savefig Directory if not present and needed
+    if not os.path.exists(savefig_dir) and do_FT:
         os.mkdir(savefig_dir)
 
     # Advection & Diffusion
@@ -65,13 +60,10 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
     N_t_stationary = N_period * ceil(N_t_stationary_min/N_period)
 
     # Population
-    # Stationary start is chosen by the user, but if files are not present, stationary_initial_cond is still False
-    # It would be nice to decouple sinusoidal and constant wind files. Here we need both
-
     c = np.random.uniform(low = c_m - c_range, high = c_m+c_range, size = (Ny,Nx))
     if do_const_wind:
         c_constwind=c.copy()
-    Nt += N_t_stationary # If files are not present, we create it first and than proceed normally when stationariety is reached
+    Nt += N_t_stationary # We add the transient to the total number of time steps 
 
     if do_FT:
         # Initialise matrices
@@ -80,7 +72,7 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
 
         fft_section_0_constwind = np.zeros((Nt,Nx))    # Same as above but for the constwind sys.
         fft_section_1_constwind = np.zeros((Nt,Nx))
-    filenames= []
+        filenames= []
 
 
     c_avg = []      # Average population for each t
@@ -107,7 +99,7 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         # ! We chose to ALWAYS save the transient
         # ! The steady state can then be selected with
         # !     c_avg = c_avg[N_t_stationary:]
-        # ! N_t_stationary is preent in the database
+        # ! N_t_stationary is present in the database
         c_avg.append(c.mean())
         if do_const_wind:
             c_constwind_avg.append(c_constwind.mean())            
@@ -144,8 +136,6 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
                 custom_plots.FirstPlot(**kwargs)
 
                 filenames.append(kwargs['filename'])
-        # if nt % 100 == 0:    
-        #     print(nt)
 
     c_avg = np.array(c_avg)
     c_full_frame_one_per = np.array(c_full_frame_one_per)
@@ -179,7 +169,6 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
 
 
     
-    #%%   
     if do_FT:
         # Gaussain blur and log scale for fft
         dk1 = (2*np.pi/Ny)*dnk1     # Circa pi/4
@@ -198,7 +187,6 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
         if show_3Dplot:
             custom_plots.ThreeD_Plot(Nt=Nt, Nx=Nx, Z_0=Z_0)
 
-    #%%
     if do_FT:
         # PLOT on k_x,t plane of |FT[c]|, |FT[c_0]|, |FT[c]|/|FT[c_0]|
         kwargs2 = {'Nt':Nt, 'N_period':N_period, 'Z_0_blur':Z_0_blur, \
@@ -207,8 +195,6 @@ def ADR(*, Nx: int, Ny : int, Nt : int, N_period : int,
             'Z_1_blur_constwind':Z_1_blur_constwind, 'second_plot_name':second_plot_name, 'savefig_dir' : savefig_dir}
         custom_plots.SecondPlot(**kwargs2)
 
-    # Print total time elapsed
-    print(f'Time elapsed: {elapsed_time:.1f}s')
 
 if __name__ == '__main__':
 
