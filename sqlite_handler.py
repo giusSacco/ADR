@@ -70,6 +70,13 @@ params = ['Nx', 'Ny', 'Nt', 'N_period', 'alpha_x0', 'd_alpha_x',
           'gifname', 'second_plot_name', 'c_avg', 'N_t_stationary', 
           'c_constwind_avg', 'c_full_frame_one_per', 'elapsed_time', 'param_hash', 'sim_date']
 
+param_types = {'Nx' : 'integer', 'Ny' : 'integer', 'Nt' : 'integer', 'N_period' : 'integer', 'alpha_x0' : 'real', 'd_alpha_x' : 'real',
+               'delta' : 'real', 'dt' : 'real', 'b' : 'real', 'a_chem_m' : 'real', 'a_chem_range' : 'real', 'c_m' : 'real', 'c_range' : 'real',
+                'rand_seed' : 'integer', 'N_t_stationary_min' : 'integer', 'do_const_wind' : 'boolean', 'do_FT' : 'boolean',
+                'savefig_dir' : 'text', 'dnk1' : 'integer', 'show_3Dplot' : 'boolean', 'make_first_plot' : 'boolean',
+                'gifname' : 'text', 'second_plot_name' : 'text', 'c_avg' : 'array', 'N_t_stationary' : 'integer',
+                'c_constwind_avg' : 'array', 'c_full_frame_one_per' : 'array', 'elapsed_time' : 'real', 'param_hash' : 'text', 'sim_date' : 'text'}
+
 params_in_hash = ['Nx', 'Ny', 'Nt', 'N_period', 'alpha_x0', 'd_alpha_x', 'delta', 'dt', 'b', 'a_chem_m', 'a_chem_range', 'c_m', 'c_range', 'rand_seed', 'N_t_stationary_min']
 
 def get_hash(Nx, Ny, Nt, N_period, alpha_x0, d_alpha_x, 
@@ -142,6 +149,18 @@ def create_simulation(conn, simulation, maxtries = 100):
             # print(f'CREATE SIM {type(e).__name__} :  {e}')
             sleep(0.01)
 
+def cast_param(param_value, param_type):
+    if isinstance(param_value, bytes):
+        if param_type == 'integer':
+            return np.frombuffer(param_value, dtype=np.int64)[0]
+        elif param_type == 'real':
+            return np.frombuffer(param_value, dtype=np.float64)[0]
+    else:
+        return param_value
+
+def cast_row(row, param_list = params):
+    return [cast_param(param_value, param_types[param]) for param, param_value in zip(param_list, row)]
+
 def select_all_sims(conn):
 
     """
@@ -155,7 +174,7 @@ def select_all_sims(conn):
 
     rows = cur.fetchall()
 
-    return rows
+    return cast_row(rows)
 
 def select_from_multiple_params(conn, params_to_query: Sequence[str], values :  Sequence[Union[str, int, float]],
                                  params_to_return : List[str] = ['c_avg','N_t_stationary','c_constwind_avg' ]):
@@ -177,7 +196,7 @@ def select_from_multiple_params(conn, params_to_query: Sequence[str], values :  
 
     rows = cur.fetchall()
 
-    return rows
+    return [cast_row(row, params_to_return) for row in rows]
 
 def select_from_param(conn, param : str, value : Union[str, int, float], 
                     params_to_return : List[str] = ['c_avg','N_t_stationary','c_constwind_avg' ]):
@@ -199,7 +218,7 @@ def select_from_param(conn, param : str, value : Union[str, int, float],
 
     rows = cur.fetchall()
 
-    return rows
+    return [cast_row(row, params_to_return) for row in rows]
 
 @contextmanager
 def Connection(name = ':memory:'):
@@ -220,6 +239,15 @@ def save_simulation(conn, Nx, Ny, Nt, N_period,
                     gifname, second_plot_name, 
                     c_avg, N_t_stationary, c_constwind_avg, 
                     c_full_frame_one_per, elapsed_time, maxtries = 100):
+    
+    for par in params:
+        partype = param_types[par]
+        if partype == 'integer':
+            exec(f'{par} = int({par})')
+        elif partype == 'real':
+            exec(f'{par} = float({par})')
+        elif partype == 'boolean':
+            exec(f'{par} = bool({par})')
     
     date = get_today()
 
