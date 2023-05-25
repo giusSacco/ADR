@@ -84,6 +84,5 @@ $$
 We can now borrow one from Succi's book and write the solution as
 
 $$
-
-\delta \tilde{c}(\tilde{x}) = \int H(\tilde{x} - \tilde{x}') \delta \vec{u} \cdot \vec{\nabla} \tilde{c}_0(\tilde{x}') d\tilde{x}'
+\delta \tilde{c}(\tilde{x}) = \int H_\omega(\tilde{x} - \tilde{x}') \delta \vec{u} \cdot \vec{\nabla} \tilde{c}_0(\tilde{x}') d\tilde{x}'
 $$
